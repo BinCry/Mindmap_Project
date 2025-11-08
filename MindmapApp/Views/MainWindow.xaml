@@ -1,0 +1,585 @@
+<Window x:Class="MindmapApp.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:MindmapApp.ViewModels"
+        xmlns:conv="clr-namespace:MindmapApp.Converters"
+        xmlns:anim="clr-namespace:MindmapApp.ViewModels"
+        mc:Ignorable="d"
+        Title="MindmapApp"
+        WindowStartupLocation="CenterScreen"
+        Width="1240"
+        Height="820"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Window.Resources>
+        <DropShadowEffect x:Key="CardShadow" BlurRadius="22" ShadowDepth="0" Opacity="0.18" />
+        <conv:ColorToBrushConverter x:Key="ColorToBrushConverter" />
+        <conv:ConnectionToGeometryConverter x:Key="ConnectionToGeometryConverter" />
+
+        <Storyboard x:Key="HideSidebar">
+            <anim:GridLengthAnimation
+                Storyboard.TargetName="SidebarColumn"
+                Storyboard.TargetProperty="(ColumnDefinition.Width)"
+                From="280" To="0"
+                Duration="0:0:0.3" />
+        </Storyboard>
+
+        <Storyboard x:Key="ShowSidebar">
+            <anim:GridLengthAnimation
+                Storyboard.TargetName="SidebarColumn"
+                Storyboard.TargetProperty="(ColumnDefinition.Width)"
+                From="0" To="280"
+                Duration="0:0:0.3" />
+        </Storyboard>
+
+        <Style x:Key="SectionTitleText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="SidebarCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#102031" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Margin" Value="0,14,0,0" />
+        </Style>
+
+        <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+
+        <Style TargetType="ToggleButton" x:Key="ToolbarToggle">
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#19324E" />
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="16"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="6,2" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="#FF273C4E" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#FFE5EBF5" />
+                                <Setter Property="Foreground" Value="#FF9AA9BC" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ListBox" x:Key="GhostListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
+        <LinearGradientBrush x:Key="SidebarGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#102033" Offset="0" />
+            <GradientStop Color="#0C1828" Offset="1" />
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Grid Margin="28">
+        <Grid.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.15" />
+        </Grid.Effect>
+
+        <Border Background="{StaticResource SurfaceBrush}" CornerRadius="28" Padding="28">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="12" Height="12" Fill="#FF9AD1FF" Margin="0,0,10,0" />
+                            <Ellipse Width="12" Height="12" Fill="#FFFCE38A" Margin="0,0,10,0" />
+                            <Ellipse Width="12" Height="12" Fill="#FF89F7FE" />
+                        </StackPanel>
+                        <TextBlock Text="MindmapApp" FontSize="30" FontWeight="Bold" Margin="0,12,0,0" Foreground="{StaticResource PrimaryBrush}" />
+                        <TextBlock Text="Tổ chức mọi ý tưởng của bạn gọn gàng và sống động"
+                                   Foreground="#FF6F7D93"
+                                   Margin="0,6,0,18"
+                                   TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Tên mindmap:" VerticalAlignment="Center" Margin="0,0,12,0" FontWeight="SemiBold" />
+                            <TextBox Width="260"
+                                     Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Margin="24,0,0,0" Background="{StaticResource SurfaceBrush}" CornerRadius="20" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="Tìm kiếm node" FontWeight="SemiBold" FontSize="16" />
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid>
+                                    <TextBox x:Name="SearchBox"
+                                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             TextChanged="SearchBox_TextChanged"
+                                             Margin="0"
+                                             Padding="12"
+                                             Height="42" />
+                                    <TextBlock x:Name="Placeholder"
+                                               Text="Nhập tên node cần tìm..."
+                                               Foreground="#FF9AA9BC"
+                                               Margin="16,0,0,0"
+                                               VerticalAlignment="Center"
+                                               IsHitTestVisible="False" />
+                                </Grid>
+                                <Button Grid.Column="1"
+                                        Content="Tìm"
+                                        Command="{Binding SearchCommand}"
+                                        Margin="12,0,0,0"
+                                        Padding="18,10" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Margin="24,0,0,0" Background="{StaticResource SurfaceBrush}" CornerRadius="20" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="Tạo mindmap với AI" FontWeight="SemiBold" FontSize="16" />
+                            <TextBlock Text="Nhập chủ đề để MindmapApp AI triển khai"
+                                       Foreground="#FF6F7D93"
+                                       FontSize="12"
+                                       Margin="0,4,0,10"
+                                       TextWrapping="Wrap" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="AiTopicTextBox" Height="42" Padding="12"
+                                         Text="{Binding Title, Mode=OneTime}" />
+                                <Button Grid.Column="1"
+                                        Content="Gợi ý"
+                                        Command="{Binding GenerateByAiCommand}"
+                                        CommandParameter="{Binding Text, ElementName=AiTopicTextBox}"
+                                        Margin="12,0,0,0"
+                                        Padding="18,10" />
+                            </Grid>
+                            <ProgressBar Height="6"
+                                         Margin="0,12,0,0"
+                                         IsIndeterminate="True"
+                                         Visibility="Collapsed">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Toolbar -->
+                <Border Grid.Row="1" Background="{StaticResource BackgroundBrush}" CornerRadius="22" Padding="12" Margin="0,22,0,0">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Thêm node"
+                                    Command="{Binding AddNodeCommand}" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Xóa node"
+                                    Command="{Binding DeleteNodeCommand}" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Kết nối"
+                                    Click="StartConnectionButton_OnClick" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Hủy kết nối"
+                                    Command="{Binding ClearConnectionCommand}" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}"
+                                          Content="Trình chiếu"
+                                          IsChecked="{Binding IsPresentationMode}"
+                                          Command="{Binding TogglePresentationCommand}" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Phóng to"
+                                    Command="{Binding ZoomInCommand}" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Thu nhỏ"
+                                    Command="{Binding ZoomOutCommand}" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Xuất ảnh"
+                                    Command="{Binding ExportImageCommand}" />
+                            <Button Style="{StaticResource ToolbarButton}"
+                                    Content="Xuất PDF"
+                                    Command="{Binding ExportPdfCommand}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Body -->
+                <Grid Grid.Row="2" Margin="0,26,0,26">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="SidebarColumn" Width="280" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Sidebar -->
+                    <Border Grid.Column="0" Background="{StaticResource SidebarGradient}" CornerRadius="26" Padding="22">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Bảng điều khiển" FontSize="22" FontWeight="Bold" Foreground="White" />
+                                <TextBlock Text="Quản lý node và tài liệu hiện tại" Foreground="#88FFFFFF" Margin="0,4,0,0" />
+
+                                <Border Style="{StaticResource SidebarCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Kết quả tìm kiếm" Foreground="#CCFFFFFF" FontWeight="SemiBold" />
+                                        <ListBox Style="{StaticResource GhostListBox}"
+                                                 ItemsSource="{Binding SearchResults}"
+                                                 DisplayMemberPath="Title"
+                                                 SelectedItem="{Binding SelectedNode}">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                                    <Setter Property="Padding" Value="8" />
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Setter Property="Foreground" Value="White" />
+                                                    <Setter Property="Cursor" Value="Hand" />
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#1FFFFFFF" />
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter Property="Background" Value="#33FFFFFF" />
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SidebarCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Node đang chọn" Foreground="#CCFFFFFF" FontWeight="SemiBold" />
+                                        <TextBlock Text="Chọn node trên canvas để chỉnh sửa"
+                                                   Foreground="#6FFFFFFF"
+                                                   FontSize="12"
+                                                   Margin="0,2,0,0" />
+                                        <TextBlock Text="Chưa có node nào được chọn"
+                                                   Foreground="#88FFFFFF"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,12,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedNode}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedNode}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+
+                                            <TextBlock Text="Tiêu đề" Foreground="#CCFFFFFF" />
+                                            <TextBox Text="{Binding SelectedNode.Title, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock Text="Mô tả" Foreground="#CCFFFFFF" Margin="0,12,0,0" />
+                                            <TextBox Text="{Binding SelectedNode.Description, UpdateSourceTrigger=PropertyChanged}"
+                                                     AcceptsReturn="True"
+                                                     Height="80"
+                                                     TextWrapping="Wrap" />
+
+                                            <TextBlock Text="Hình dạng" Foreground="#CCFFFFFF" Margin="0,12,0,0" />
+                                            <ComboBox ItemsSource="{Binding ShapeOptions}"
+                                                      SelectedItem="{Binding SelectedNode.Shape, Mode=TwoWay}"
+                                                      Background="White" />
+
+                                            <TextBlock Text="Font chữ" Foreground="#CCFFFFFF" Margin="0,12,0,0" />
+                                            <ComboBox ItemsSource="{Binding FontOptions}"
+                                                      SelectedItem="{Binding SelectedNode.FontFamily, Mode=TwoWay}"
+                                                      Background="White" />
+
+                                            <TextBlock Text="Cỡ chữ" Foreground="#CCFFFFFF" Margin="0,12,0,0" />
+                                            <ComboBox ItemsSource="{Binding FontSizeOptions}"
+                                                      SelectedItem="{Binding SelectedNode.FontSize, Mode=TwoWay}"
+                                                      Background="White" />
+
+                                            <TextBlock Text="Màu sắc" Foreground="#CCFFFFFF" Margin="0,12,0,0" />
+                                            <ItemsControl ItemsSource="{Binding ColorPalette}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Width="28" Height="28" Margin="4"
+                                                                BorderThickness="0"
+                                                                Background="{Binding Converter={StaticResource ColorToBrushConverter}}"
+                                                                Command="{Binding DataContext.ApplyColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SidebarCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Ghi chú" Foreground="#CCFFFFFF" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding StatusMessage}" Foreground="#F2FFFFFF" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- Toggle sidebar button -->
+                    <Button x:Name="ToggleButton"
+                            Grid.Column="1"
+                            Content="◀"
+                            Width="34" Height="120"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Margin="-16,0,0,0"
+                            Padding="0"
+                            Background="{StaticResource PrimaryBrush}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            FontSize="18"
+                            Click="ToggleSidebar_Click"
+                            Panel.ZIndex="5">
+                        <Button.Effect>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.35" />
+                        </Button.Effect>
+                    </Button>
+
+                    <!-- Canvas area -->
+                    <Border Grid.Column="1"
+                            Background="{StaticResource BackgroundBrush}"
+                            CornerRadius="26"
+                            Padding="18"
+                            Effect="{StaticResource CardShadow}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Auto">
+                            <Border x:Name="MindmapSurface"
+                                    Background="{StaticResource SurfaceBrush}"
+                                    CornerRadius="22">
+                                <Grid MinWidth="900"
+                                      MinHeight="600">
+                                    <Grid.LayoutTransform>
+                                        <ScaleTransform ScaleX="{Binding ZoomLevel}" ScaleY="{Binding ZoomLevel}" />
+                                    </Grid.LayoutTransform>
+
+                                    <!-- Connections -->
+                                    <ItemsControl ItemsSource="{Binding Connections}" IsHitTestVisible="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
+                                                <Path StrokeThickness="{Binding Thickness}"
+                                                      Stroke="{Binding StrokeColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                      Opacity="0.8">
+                                                    <Path.Data>
+                                                        <MultiBinding Converter="{StaticResource ConnectionToGeometryConverter}">
+                                                            <Binding />
+                                                            <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="DataContext.Nodes" />
+                                                        </MultiBinding>
+                                                    </Path.Data>
+                                                </Path>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Nodes -->
+                                    <ItemsControl ItemsSource="{Binding Nodes}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:NodeViewModel}">
+                                                <Thumb Width="{Binding Width}" Height="{Binding Height}"
+                                                       Tag="{Binding}"
+                                                       DragDelta="NodeThumb_OnDragDelta"
+                                                       MouseLeftButtonDown="NodeThumb_OnMouseDown">
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Grid>
+                                                                <Grid>
+                                                                    <Border x:Name="NodeBackground"
+                                                                            Background="{Binding BackgroundColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                                            BorderBrush="{Binding BorderColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                                            BorderThickness="2"
+                                                                            CornerRadius="22">
+                                                                        <Border.Effect>
+                                                                            <DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.25" />
+                                                                        </Border.Effect>
+                                                                    </Border>
+                                                                    <Path x:Name="DiamondShape"
+                                                                          Visibility="Collapsed"
+                                                                          Stretch="Fill"
+                                                                          Data="M 0.5,0 L 1,0.5 L 0.5,1 L 0,0.5 Z"
+                                                                          Fill="{Binding BackgroundColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                                          Stroke="{Binding BorderColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                                          StrokeThickness="2">
+                                                                        <Path.Effect>
+                                                                            <DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.25" />
+                                                                        </Path.Effect>
+                                                                    </Path>
+                                                                </Grid>
+                                                                <Grid x:Name="ContentContainer" Margin="16">
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="*" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                    </Grid.RowDefinitions>
+                                                                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="{Binding FontSize}"
+                                                                               Foreground="{Binding TextColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                                               TextWrapping="Wrap" />
+                                                                    <TextBlock Grid.Row="1" Text="{Binding Description}" TextWrapping="Wrap"
+                                                                               Foreground="{Binding TextColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                                               Opacity="0.85" Margin="0,6,0,0" />
+                                                                    <ItemsControl Grid.Row="2" ItemsSource="{Binding Tags}" Margin="0,10,0,0">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <WrapPanel />
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Border Background="#1A273C4E" CornerRadius="10" Padding="6,2" Margin="0,0,6,0">
+                                                                                    <TextBlock Text="{Binding}" Foreground="#FF273C4E" FontSize="12" />
+                                                                                </Border>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                </Grid>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <DataTrigger Binding="{Binding Shape}" Value="Rectangle">
+                                                                    <Setter TargetName="NodeBackground" Property="CornerRadius" Value="12" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Shape}" Value="Ellipse">
+                                                                    <Setter TargetName="NodeBackground" Property="CornerRadius" Value="120" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Shape}" Value="Diamond">
+                                                                    <Setter TargetName="NodeBackground" Property="Visibility" Value="Collapsed" />
+                                                                    <Setter TargetName="DiamondShape" Property="Visibility" Value="Visible" />
+                                                                    <Setter TargetName="ContentContainer" Property="Margin" Value="28" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter TargetName="NodeBackground" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                                    <Setter TargetName="NodeBackground" Property="BorderThickness" Value="3" />
+                                                                    <Setter TargetName="DiamondShape" Property="Stroke" Value="{StaticResource AccentBrush}" />
+                                                                    <Setter TargetName="DiamondShape" Property="StrokeThickness" Value="3" />
+                                                                </DataTrigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                    <Thumb.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="Xóa node"
+                                                                      Click="DeleteNodeMenuItem_OnClick"
+                                                                      CommandParameter="{Binding}" />
+                                                        </ContextMenu>
+                                                    </Thumb.ContextMenu>
+                                                </Thumb>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+
+                <!-- Footer -->
+                <Border Grid.Row="3" Background="{StaticResource BackgroundBrush}" CornerRadius="20" Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Trạng thái:" FontWeight="SemiBold" />
+                            <TextBlock Margin="8,0,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{Binding StatusMessage}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding StatusMessage}" Value="">
+                                                <Setter Property="Text" Value="Sẵn sàng" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusMessage}" Value="{x:Null}">
+                                                <Setter Property="Text" Value="Sẵn sàng" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding ZoomLevel, StringFormat=Zoom {0:P0}}" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
