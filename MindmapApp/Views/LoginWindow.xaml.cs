@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using MindmapApp.Models;
 using MindmapApp.ViewModels;
 
@@ -52,5 +53,11 @@ public partial class LoginWindow : Window
     private void ForgotButton_OnClick(object sender, RoutedEventArgs e)
     {
         _viewModel.OpenForgotPasswordCommand.Execute(null);
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+            LoginButton_OnClick((object)sender, e);
     }
 }
