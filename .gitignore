@@ -1,0 +1,50 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa]rm/
+[Aa]rm64/
+b[in]/
+[Oo]bj/
+[Ll]og/
+[Pp]ackages/
+
+# Visual Studio / VS Code
+.vs/
+*.user
+*.suo
+*.sln.docstates
+*.cache
+.vscode/
+
+# User-specific files
+*.rsuser
+*.scc
+*.user_osx
+*.sln.docstates
+
+# NuGet
+*.nupkg
+packages/
+*[Pp]ackages*/
+!packages/build/
+!packages/repositories.config
+packages.props
+packages.targets
+global.json
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
