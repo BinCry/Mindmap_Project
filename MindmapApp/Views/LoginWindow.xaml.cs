@@ -7,8 +7,12 @@ namespace MindmapApp.Views;
 
 public partial class LoginWindow : Window
 {
+    #region Fields
     private readonly LoginViewModel _viewModel;
 
+    #endregion
+
+    #region Constructor
     public LoginWindow()
     {
         InitializeComponent();
@@ -18,7 +22,9 @@ public partial class LoginWindow : Window
         _viewModel.RegisterRequested += (_, _) => ShowRegister();
         _viewModel.ForgotPasswordRequested += (_, _) => ShowForgotPassword();
     }
+    #endregion
 
+    #region Private Methods
     private void OnLoginSucceeded(object? sender, UserAccount account)
     {
         var window = new MainWindow(account);
@@ -39,7 +45,9 @@ public partial class LoginWindow : Window
         window.Owner = this;
         window.ShowDialog();
     }
+    #endregion
 
+    #region UI Event Handlers
     private void LoginButton_OnClick(object sender, RoutedEventArgs e)
     {
         _viewModel.LoginCommand.Execute(PasswordBox.Password);
@@ -60,4 +68,27 @@ public partial class LoginWindow : Window
         if (e.Key == Key.Enter)
             LoginButton_OnClick((object)sender, e);
     }
+    #endregion
+
+
+    #region Window Control Handlers 
+    private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            this.DragMove();
+        }
+    }
+
+    private void Button_Click(object sender, RoutedEventArgs e)
+    {
+        this.WindowState = WindowState.Minimized;
+    }
+
+    private void Button_Click_1(object sender, RoutedEventArgs e)
+    {
+        this.Close();
+    }
+    #endregion
+
 }

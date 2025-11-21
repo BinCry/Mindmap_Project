@@ -144,4 +144,16 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    // Đóng chương trình: 
+    private void Image_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        this.Close();
+    }
+
+    // Thu nhỏ: 
+    private void Image_PreviewMouseDown_1(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
 }

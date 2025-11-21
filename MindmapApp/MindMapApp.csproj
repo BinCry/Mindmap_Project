@@ -8,11 +8,27 @@
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<!-- THÊM DÒNG NÀY -->
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="Resources\-.png" />
+	  <None Remove="Resources\x.png" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.11" />
 		<PackageReference Include="MailKit" Version="4.1.0" />
 		<PackageReference Include="PdfSharpCore" Version="1.3.47" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="Resources\-.png">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Resource>
+	  <Resource Include="Resources\LoginMindMap.jpg">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Resource>
+	  <Resource Include="Resources\x.png">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Resource>
 	</ItemGroup>
 </Project>

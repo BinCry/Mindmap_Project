@@ -8,22 +8,62 @@
         WindowStartupLocation="CenterScreen"
         Height="560"
         Width="920"
-        ResizeMode="NoResize"
         Background="Transparent"
         AllowsTransparency="True"
+        ResizeMode="CanMinimize"
         WindowStyle="None"
         KeyDown="Window_KeyDown">
+    <Window.Resources>
+        <Style x:Key="WindowButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EEE"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.Effect>
             <DropShadowEffect BlurRadius="40" Opacity="0.25" ShadowDepth="0" />
         </Grid.Effect>
+
         <Border Background="{StaticResource BackgroundBrush}" CornerRadius="26" Padding="32">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="103*"/>
+                    <RowDefinition Height="21*"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="3*" />
                     <ColumnDefinition Width="2.2*" />
                 </Grid.ColumnDefinitions>
-                <Border Background="{StaticResource PrimaryBrush}" CornerRadius="20" Margin="0,0,28,0" Padding="36">
+
+                <Border Background="{StaticResource PrimaryBrush}" CornerRadius="20" Margin="0,0,28,0" Padding="36" Grid.RowSpan="2">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="20" Opacity="0.15" ShadowDepth="0" />
                     </Border.Effect>
@@ -37,28 +77,72 @@
                             <Ellipse Width="12" Height="12" Fill="#FFFCE38A" Margin="0,0,10,0"/>
                             <Ellipse Width="12" Height="12" Fill="#FF89F7FE" />
                         </StackPanel>
-                        <StackPanel Grid.Row="1" VerticalAlignment="Center" >
-                            <TextBlock Text="MindmapApp" Foreground="White" FontSize="42" FontWeight="Bold" Margin="0,0,0,6" />
-                            <TextBlock Text="Biến mọi ý tưởng thành sơ đồ tư duy đầy màu sắc" Foreground="#CCFFFFFF" FontSize="18" TextWrapping="Wrap" Margin="0,0,0,18"/>
-                            <StackPanel Orientation="Horizontal" >
-                                <Border Background="#1AFFFFFF" Padding="12,10" CornerRadius="16" Margin="0,0,12,0">
-                                    <StackPanel>
-                                        <TextBlock Text="Tùy biến giao diện" Foreground="White" FontWeight="SemiBold" />
-                                        <TextBlock Text="Hơn 20 màu sắc và hình dạng" Foreground="#DDFFFFFF"  FontSize="12"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#1AFFFFFF" Padding="12,10" CornerRadius="16">
-                                    <StackPanel>
-                                        <TextBlock Text="Kết nối trực quan" Foreground="White" FontWeight="SemiBold" />
-                                        <TextBlock Text="Kéo thả siêu mượt" Foreground="#DDFFFFFF"  FontSize="12"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
+
+                        <StackPanel Grid.Row="1" VerticalAlignment="Top" >
+
+                            <TextBlock Foreground="White" 
+                                       FontSize="35" FontWeight="Bold" Margin="0,0,0,6"
+                                       TextAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Mind Map App"></Setter>
+                                        <Style.Triggers>
+                                            <EventTrigger RoutedEvent="Window.Loaded">
+                                                <BeginStoryboard Storyboard="{StaticResource ThuanStoryBoard}"></BeginStoryboard>
+                                            </EventTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Image Source="/Resources/LoginMindMap.jpg"
+                                   HorizontalAlignment="Center" 
+                                   Stretch="Uniform"
+                                   Width="300" 
+                                   Margin="0,0,0,0"/>
+                            <TextBlock Text="Created by Dev không Bugs"
+                                       Foreground="White"
+                                       FontSize="14"
+                                       Opacity="0.8" 
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,0"
+                                       FontStyle="Italic">
+
+                            </TextBlock>
+
                         </StackPanel>
+
+                        <!--Control bar-->
+                        <Grid Grid.Column="0" Grid.ColumnSpan="2" 
+                              Height="40" 
+                              VerticalAlignment="Top" 
+                              MouseLeftButtonDown="Grid_MouseLeftButtonDown">
+                            <Border CornerRadius="26,26,0,0" ToolTip="Giữ chuột trái để di chuyển">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#05000000"/>
+                                        <Setter Property="Cursor" Value="SizeAll"/>
+
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#CC000000"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,-10,0">
+                                <Button Content="&#xE921;" Style="{StaticResource WindowButtonStyle}" Click="Button_Click" Cursor="Hand" ToolTip="Thu nhỏ"/>
+                                <Button Content="&#xE8BB;" Style="{StaticResource CloseButtonStyle}" Click="Button_Click_1" Cursor="Hand" ToolTip="Đóng"/>
+                                <Border Width="20"/>
+                            </StackPanel>
+                        </Grid>
+
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="1" Background="{StaticResource SurfaceBrush}" CornerRadius="24" Padding="40,36" BorderBrush="#EEE" BorderThickness="1">
+                <Border Grid.Column="1" Background="{StaticResource SurfaceBrush}" CornerRadius="24" Padding="40,36" BorderBrush="#EEE" BorderThickness="1" Grid.RowSpan="2">
                     <StackPanel>
                         <TextBlock Text="Chào mừng trở lại 👋" FontSize="26" FontWeight="Bold" Foreground="#333" />
                         <TextBlock Text="Đăng nhập để quản lý mindmap của bạn" Margin="0,6,0,24" Foreground="#7A8699" />
