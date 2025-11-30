@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows.Media;
 
@@ -9,15 +9,32 @@ public class NodeModel
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
+
+
     public double X { get; set; }
     public double Y { get; set; }
     public double Width { get; set; } = 220;
     public double Height { get; set; } = 120;
+
+
     public string Shape { get; set; } = "RoundedRectangle";
+
+
     public Color BackgroundColor { get; set; } = Color.FromRgb(0xE3, 0xF2, 0xFD);
     public Color BorderColor { get; set; } = Color.FromRgb(0x4E, 0x89, 0xAE);
     public Color TextColor { get; set; } = Color.FromRgb(0x27, 0x3C, 0x4E);
+
+    public string FontWeight { get; set; } = "Normal"; // Mặc định là chữ thường
     public double FontSize { get; set; } = 16;
     public string FontFamily { get; set; } = "Segoe UI";
+
     public ObservableCollection<string> Tags { get; set; } = new();
+
+    // Thuộc tính khả năng kéo thả, Node gốc không được kéo thả. 
+    public bool IsDraggable { get; set; } = true;
+    // Thuộc tính khả năng xóa node: 
+    public bool IsDeletable { get; set; } = true;
+
+    public bool IsRoot { get; set; } = false; 
+
 }

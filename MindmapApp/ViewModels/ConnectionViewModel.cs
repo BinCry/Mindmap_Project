@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Media;
 using MindmapApp.Models;
 
@@ -6,7 +6,9 @@ namespace MindmapApp.ViewModels;
 
 public class ConnectionViewModel : BaseViewModel
 {
-    private readonly ConnectionModel _model;
+    #region Fields & Constructor
+
+    private readonly ConnectionModel _model; 
     private bool _isHighlighted;
 
     public ConnectionViewModel(ConnectionModel model)
@@ -14,7 +16,14 @@ public class ConnectionViewModel : BaseViewModel
         _model = model;
     }
 
+    public ConnectionModel ToModel() => _model;
+
+    #endregion
+
+    #region Identity & Relations
+
     public Guid Id => _model.Id;
+
     public Guid SourceId
     {
         get => _model.SourceId;
@@ -41,7 +50,26 @@ public class ConnectionViewModel : BaseViewModel
         }
     }
 
-    public Color StrokeColor
+    private NodeViewModel? _source;
+    private NodeViewModel? _target;
+
+    public NodeViewModel? Source
+    {
+        get => _source;
+        set => SetProperty(ref _source, value);
+    }
+
+    public NodeViewModel? Target
+    {
+        get => _target;
+        set => SetProperty(ref _target, value);
+    }
+
+    #endregion
+
+    #region Appearance (Visual Styles)
+
+    public Color StrokeColor // Màu dây. 
     {
         get => _model.StrokeColor;
         set
@@ -54,7 +82,7 @@ public class ConnectionViewModel : BaseViewModel
         }
     }
 
-    public double Thickness
+    public double Thickness // Độ dày. 
     {
         get => _model.Thickness;
         set
@@ -67,7 +95,7 @@ public class ConnectionViewModel : BaseViewModel
         }
     }
 
-    public bool IsCurved
+    public bool IsCurved // Dây cong hay thẳng. 
     {
         get => _model.IsCurved;
         set
@@ -80,7 +108,7 @@ public class ConnectionViewModel : BaseViewModel
         }
     }
 
-    public DoubleCollection? DashArray
+    public DoubleCollection? DashArray // Nét liền hay đứt. 
     {
         get => _model.DashArray;
         set
@@ -93,11 +121,16 @@ public class ConnectionViewModel : BaseViewModel
         }
     }
 
+    #endregion
+
+    #region View State
+
+    // Biến này dùng để đổi màu dây khi được chọn
     public bool IsHighlighted
     {
         get => _isHighlighted;
         set => SetProperty(ref _isHighlighted, value);
     }
 
-    public ConnectionModel ToModel() => _model;
+    #endregion
 }
