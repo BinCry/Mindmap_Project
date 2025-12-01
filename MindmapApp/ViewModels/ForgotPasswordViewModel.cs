@@ -1,5 +1,6 @@
-
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using MindmapApp.Commands;
@@ -18,10 +19,18 @@ public class ForgotPasswordViewModel : BaseViewModel
     private bool _isBusy;
     private bool _isOtpSent;
 
+    // In-memory OTP
+    private string? _generatedOtp;
+    private DateTime? _otpExpiration;
+
+    // Dev flag to show OTP in logs for testing only (default false)
+    public static bool DevShowOtp { get; set; } = false;
+
     public ForgotPasswordViewModel(UserService userService, EmailService emailService)
     {
         _userService = userService;
         _emailService = emailService;
+
         SendOtpCommand = new AsyncRelayCommand(ExecuteSendOtpAsync, _ => !IsBusy);
         ResetPasswordCommand = new AsyncRelayCommand(ExecuteResetPasswordAsync, _ => !IsBusy && IsOtpSent);
         BackCommand = new RelayCommand(_ => BackRequested?.Invoke(this, EventArgs.Empty));
@@ -97,20 +106,44 @@ public class ForgotPasswordViewModel : BaseViewModel
                 return;
             }
 
-            var code = await _userService.CreateOtpAsync(Email, TimeSpan.FromMinutes(10));
-            if (string.IsNullOrWhiteSpace(code))
+            if (!await _userService.CheckEmailExistsAsync(Email))
             {
-                ErrorMessage = "Không thể tạo mã OTP. Vui lòng thử lại";
+                ErrorMessage = "Email này không tồn tại trong hệ thống. Vui lòng kiểm tra lại.";
                 return;
             }
 
-            await _emailService.SendOtpAsync(Email, code);
-            IsOtpSent = true;
-            SuccessMessage = "Đã gửi OTP về Email của bạn. Vui lòng kiểm tra hộp thư";
+            var random = new Random();
+            var code = random.Next(100000, 999999).ToString(CultureInfo.InvariantCulture);
+            var tempExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            try
+            {
+                await _emailService.SendOtpAsync(Email, code);
+
+                _generatedOtp = code;
+                _otpExpiration = tempExpiry;
+                IsOtpSent = true;
+                SuccessMessage = $"Đã gửi OTP về Email '{Email}'. Mã có hiệu lực đến {_otpExpiration.Value.ToLocalTime():HH:mm:ss}.";
+
+                if (DevShowOtp)
+                {
+                    Debug.WriteLine($"DEV OTP for {Email}: {code}");
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                ErrorMessage = "SMTP chưa cấu hình. Vui lòng sao chép 'settings.example.json' thành settings.json tại %APPDATA%\\MindmapApp và điền cấu hình SMTP (SenderEmail, SenderPassword...).";
+                IsOtpSent = false;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Không thể gửi email: {ex.Message}";
+                IsOtpSent = false;
+            }
         }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = $"Lỗi gửi OTP: {ex.Message}";
         }
         finally
         {
@@ -133,31 +166,52 @@ public class ForgotPasswordViewModel : BaseViewModel
             }
 
             var (password, confirm) = passwords;
+            if (string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(confirm))
+            {
+                ErrorMessage = "Vui lòng nhập mật khẩu mới.";
+                return;
+            }
+
             if (!string.Equals(password, confirm, StringComparison.Ordinal))
             {
                 ErrorMessage = "Mật khẩu xác nhận không khớp";
                 return;
             }
 
-            if (!await _userService.ValidateOtpAsync(Email, Otp))
+            if (string.IsNullOrWhiteSpace(_generatedOtp) || _otpExpiration == null)
             {
-                ErrorMessage = "OTP không hợp lệ hoặc đã hết hạn";
+                ErrorMessage = "Vui lòng bấm 'Gửi OTP' trước.";
+                return;
+            }
+
+            if (_otpExpiration.Value <= DateTime.UtcNow)
+            {
+                ErrorMessage = "Mã OTP đã hết hạn. Vui lòng gửi lại.";
+                return;
+            }
+
+            if (!string.Equals(Otp.Trim(), _generatedOtp.Trim(), StringComparison.Ordinal))
+            {
+                ErrorMessage = "OTP không chính xác.";
                 return;
             }
 
             var success = await _userService.UpdatePasswordAsync(Email, password);
             if (!success)
             {
-                ErrorMessage = "Không thể cập nhật mật khẩu";
+                ErrorMessage = "Không thể cập nhật mật khẩu. Vui lòng kiểm tra lại Email hoặc kết nối.";
                 return;
             }
+
+            _generatedOtp = null;
+            _otpExpiration = null;
 
             SuccessMessage = "Cập nhật mật khẩu thành công!";
             PasswordResetSuccessfully?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = $"Lỗi cập nhật mật khẩu: {ex.Message}";
         }
         finally
         {

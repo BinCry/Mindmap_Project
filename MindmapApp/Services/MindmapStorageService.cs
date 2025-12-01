@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using MindmapApp.Models;
+using Microsoft.Data.SqlClient;
 
 namespace MindmapApp.Services;
 
@@ -29,15 +30,16 @@ public class MindmapStorageService
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Id, Title, Content FROM MindmapDocuments WHERE UserId = @userId ORDER BY UpdatedAt DESC LIMIT 1";
+        // SQL Server: use TOP(1) instead of LIMIT
+        command.CommandText = "SELECT TOP(1) Id, Title, Content FROM MindmapDocuments WHERE UserId = @userId ORDER BY UpdatedAt DESC";
         command.Parameters.AddWithValue("@userId", userId.ToString());
 
         await using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
             var documentId = Guid.Parse(reader.GetString(0));
-            var title = reader.GetString(1);
-            var content = reader.GetString(2);
+            var title = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+            var content = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
             var stored = JsonSerializer.Deserialize<StoredDocument>(content, _jsonOptions) ?? new StoredDocument();
             return ToMindmapDocument(stored, documentId, userId, title);
         }
@@ -70,19 +72,27 @@ public class MindmapStorageService
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
+        // SQL Server: upsert pattern using IF EXISTS
         command.CommandText = @"
-            INSERT INTO MindmapDocuments (Id, UserId, Title, Content, UpdatedAt)
-            VALUES (@id, @userId, @title, @content, @updatedAt)
-            ON CONFLICT(Id) DO UPDATE SET
-                Title = excluded.Title,
-                Content = excluded.Content,
-                UpdatedAt = excluded.UpdatedAt";
+IF EXISTS (SELECT 1 FROM MindmapDocuments WHERE Id = @id)
+BEGIN
+    UPDATE MindmapDocuments
+    SET Title = @title,
+        Content = @content,
+        UpdatedAt = @updatedAt
+    WHERE Id = @id;
+END
+ELSE
+BEGIN
+    INSERT INTO MindmapDocuments (Id, UserId, Title, Content, UpdatedAt)
+    VALUES (@id, @userId, @title, @content, @updatedAt);
+END";
 
         command.Parameters.AddWithValue("@id", document.Id.ToString());
         command.Parameters.AddWithValue("@userId", document.OwnerId.ToString());
         command.Parameters.AddWithValue("@title", document.Title);
         command.Parameters.AddWithValue("@content", json);
-        command.Parameters.AddWithValue("@updatedAt", DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("@updatedAt", DateTime.UtcNow);
 
         await command.ExecuteNonQueryAsync();
     }

@@ -70,6 +70,9 @@ public class RegisterViewModel : BaseViewModel
     public ICommand RegisterCommand { get; }
     public ICommand BackCommand { get; }
 
+    // Optional: public wrapper to call registration directly from code-behind
+    public Task RegisterAsync(string password, string confirm) => ExecuteRegisterAsync(Tuple.Create(password, confirm));
+
     private async Task ExecuteRegisterAsync(object? parameter)
     {
         try
@@ -78,13 +81,45 @@ public class RegisterViewModel : BaseViewModel
             ErrorMessage = string.Empty;
             SuccessMessage = string.Empty;
 
-            if (parameter is not Tuple<string, string> passwords)
+            // Support several parameter shapes from different UI code-behinds
+            string? password = null;
+            string? confirm = null;
+
+            if (parameter is Tuple<string, string> two)
+            {
+                password = two.Item1;
+                confirm = two.Item2;
+            }
+            else if (parameter is Tuple<string, string, string> three)
+            {
+                password = three.Item1;
+                confirm = three.Item2;
+            }
+            else if (parameter is object[] arr && arr.Length >= 2 && arr[0] is string p0 && arr[1] is string p1)
+            {
+                password = p0;
+                confirm = p1;
+            }
+            else if (parameter is ValueTuple<string, string> vtuple)
+            {
+                password = vtuple.Item1;
+                confirm = vtuple.Item2;
+            }
+            else if (parameter is string single)
+            {
+                // If caller passed only password (unlikely for register), treat as both
+                password = single;
+                confirm = single;
+            }
+
+            password = password?.Trim();
+            confirm = confirm?.Trim();
+
+            if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirm))
             {
                 ErrorMessage = "Không lấy được mật khẩu";
                 return;
             }
-
-            var (password, confirm) = passwords;
 
             // === VALIDATE TẠI ĐÂY ===
             // 1) Email
@@ -102,13 +137,6 @@ public class RegisterViewModel : BaseViewModel
             if (!string.Equals(password, confirm, StringComparison.Ordinal))
             {
                 ErrorMessage = "Mật khẩu xác nhận không khớp";
-                return;
-            }
-
-            // (Tùy chọn) blacklist các mật khẩu quá phổ biến
-            if (IsCommonPassword(password))
-            {
-                ErrorMessage = "Mật khẩu quá phổ biến, vui lòng chọn mật khẩu mạnh hơn";
                 return;
             }
 
@@ -147,48 +175,18 @@ public class RegisterViewModel : BaseViewModel
     private string? ValidateDisplayName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "Vui lòng nhập tên hiển thị";
+
         var t = name.Trim();
         if (t.Length < 2 || t.Length > 40) return "Tên hiển thị 2–40 ký tự";
-
-        // (Khuyến nghị) Chỉ cho chữ cái/số/khoảng trắng
-        if (!Regex.IsMatch(t, @"^[\p{L}\p{N} ]+$"))
-            return "Tên chỉ được chứa chữ cái, số và khoảng trắng";
-
-        // (Khuyến nghị) Cấm từ nhạy cảm
-        if (Regex.IsMatch(t, @"\b(admin|root|system)\b", RegexOptions.IgnoreCase))
-            return "Tên này không được phép sử dụng";
-
         return null;
     }
 
     private string? ValidatePassword(string pwd, string email, string displayName)
     {
         if (string.IsNullOrEmpty(pwd)) return "Vui lòng nhập mật khẩu";
-        if (pwd.Length < 10) return "Mật khẩu tối thiểu 10 ký tự";
-
-        int classes = 0;
-        if (pwd.Any(char.IsLower)) classes++;
-        if (pwd.Any(char.IsUpper)) classes++;
-        if (pwd.Any(char.IsDigit)) classes++;
-        if (pwd.Any(ch => !char.IsLetterOrDigit(ch))) classes++;
-        if (classes < 3) return "Mật khẩu cần ít nhất 3/4 nhóm: a-z, A-Z, 0-9, ký tự đặc biệt";
-
-        var low = pwd.ToLowerInvariant();
-        if (!string.IsNullOrWhiteSpace(email) && low.Contains(email.ToLowerInvariant()))
-            return "Mật khẩu không được chứa Email";
-        if (!string.IsNullOrWhiteSpace(displayName) && low.Contains(displayName.ToLowerInvariant()))
-            return "Mật khẩu không được chứa tên hiển thị";
-
-        // (Khuyến nghị) Không có khoảng trắng
-        if (pwd.Any(char.IsWhiteSpace)) return "Mật khẩu không được chứa khoảng trắng";
-
+        if (pwd.Length < 6) return "Mật khẩu tối thiểu 6 ký tự";
         return null;
     }
 
-    private bool IsCommonPassword(string pwd)
-    {
-        // Danh sách mẫu, có thể mở rộng theo nhu cầu
-        string[] common = { "password", "123456", "123456789", "qwerty", "letmein", "admin" };
-        return common.Any(p => string.Equals(p, pwd, StringComparison.OrdinalIgnoreCase));
-    }
+    private bool IsCommonPassword(string pwd) => false;
 }

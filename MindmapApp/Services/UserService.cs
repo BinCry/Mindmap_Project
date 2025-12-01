@@ -1,6 +1,11 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
-using Microsoft.Data.Sqlite;
+using System.Linq;
+using System.Threading.Tasks;
+// Thêm thư viện SQL Server
+using Microsoft.Data.SqlClient;
 using MindmapApp.Models;
 
 namespace MindmapApp.Services;
@@ -10,11 +15,36 @@ public class UserService
     private readonly DatabaseService _databaseService;
     private readonly PasswordHasher _passwordHasher;
 
+    // Cache schema info for Users table
+    private HashSet<string>? _userColumns;
+    private bool _columnsLoaded = false;
+
     public UserService(DatabaseService databaseService, PasswordHasher passwordHasher)
     {
         _databaseService = databaseService;
         _passwordHasher = passwordHasher;
     }
+
+    private async Task EnsureUserColumnsLoadedAsync(SqlConnection connection)
+    {
+        if (_columnsLoaded && _userColumns != null)
+            return;
+
+        // Expect an open connection
+        var cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users'";
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            cols.Add(reader.GetString(0));
+        }
+
+        _userColumns = cols;
+        _columnsLoaded = true;
+    }
+
+    private bool HasColumn(string name) => _userColumns != null && _userColumns.Contains(name);
 
     public async Task<bool> RegisterAsync(string email, string password, string? displayName)
     {
@@ -26,29 +56,86 @@ public class UserService
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
 
+        await EnsureUserColumnsLoadedAsync(connection);
+
+        // 1. Kiểm tra Email đã tồn tại chưa
         await using (var checkCommand = connection.CreateCommand())
         {
-            checkCommand.CommandText = "SELECT COUNT(1) FROM Users WHERE Email = $Email";
-            checkCommand.Parameters.AddWithValue("$Email", email.Trim().ToLowerInvariant());
-            var exists = (long?)await checkCommand.ExecuteScalarAsync() ?? 0;
+            checkCommand.CommandText = "SELECT COUNT(1) FROM Users WHERE Email = @Email";
+            checkCommand.Parameters.AddWithValue("@Email", email.Trim().ToLowerInvariant());
+
+            var exists = (int?)await checkCommand.ExecuteScalarAsync() ?? 0;
             if (exists > 0)
             {
                 return false;
             }
         }
 
+        // Tạo hash và salt
         var (hash, salt) = _passwordHasher.HashPassword(password);
 
-        await using var insertCommand = connection.CreateCommand();
-        insertCommand.CommandText = @"INSERT INTO Users (Id, Email, PasswordHash, PasswordSalt, DisplayName, CreatedAt)
-                                      VALUES ($Id, $Email, $PasswordHash, $PasswordSalt, $DisplayName, $CreatedAt)";
-        insertCommand.Parameters.AddWithValue("$Id", Guid.NewGuid().ToString());
-        insertCommand.Parameters.AddWithValue("$Email", email.Trim().ToLowerInvariant());
-        insertCommand.Parameters.AddWithValue("$PasswordHash", hash);
-        insertCommand.Parameters.AddWithValue("$PasswordSalt", salt);
-        insertCommand.Parameters.AddWithValue("$DisplayName", (object?)displayName ?? DBNull.Value);
-        insertCommand.Parameters.AddWithValue("$CreatedAt", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-        return await insertCommand.ExecuteNonQueryAsync() == 1;
+        // Build INSERT based on available columns
+        if (HasColumn("PasswordHash") && HasColumn("PasswordSalt"))
+        {
+            var cols = new List<string> { "Id", "Email", "PasswordHash", "PasswordSalt", "CreatedAt" };
+            var vals = new List<string> { "@Id", "@Email", "@PasswordHash", "@PasswordSalt", "@CreatedAt" };
+            if (HasColumn("DisplayName"))
+            {
+                cols.Insert(cols.Count - 1, "DisplayName");
+                vals.Insert(vals.Count - 1, "@DisplayName");
+            }
+
+            var insertSql = $"INSERT INTO Users ({string.Join(", ", cols)}) VALUES ({string.Join(", ", vals)})";
+            await using var insertCommand = connection.CreateCommand();
+            insertCommand.CommandText = insertSql;
+            insertCommand.Parameters.AddWithValue("@Id", Guid.NewGuid().ToString());
+            insertCommand.Parameters.AddWithValue("@Email", email.Trim().ToLowerInvariant());
+            insertCommand.Parameters.AddWithValue("@PasswordHash", hash);
+            insertCommand.Parameters.AddWithValue("@PasswordSalt", salt);
+            if (HasColumn("DisplayName"))
+                insertCommand.Parameters.AddWithValue("@DisplayName", (object?)displayName ?? string.Empty);
+            insertCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+
+            return await insertCommand.ExecuteNonQueryAsync() == 1;
+        }
+        else if (HasColumn("Password"))
+        {
+            // Store combined salt|hash in single Password column for backward compatibility
+            var combined = $"{salt}|{hash}";
+            var cols = new List<string> { "Id", "Email", "Password", "CreatedAt" };
+            var vals = new List<string> { "@Id", "@Email", "@Password", "@CreatedAt" };
+            if (HasColumn("DisplayName"))
+            {
+                cols.Insert(cols.Count - 1, "DisplayName");
+                vals.Insert(vals.Count - 1, "@DisplayName");
+            }
+
+            var insertSql = $"INSERT INTO Users ({string.Join(", ", cols)}) VALUES ({string.Join(", ", vals)})";
+            await using var insertCommand = connection.CreateCommand();
+            insertCommand.CommandText = insertSql;
+            insertCommand.Parameters.AddWithValue("@Id", Guid.NewGuid().ToString());
+            insertCommand.Parameters.AddWithValue("@Email", email.Trim().ToLowerInvariant());
+            insertCommand.Parameters.AddWithValue("@Password", combined);
+            if (HasColumn("DisplayName"))
+                insertCommand.Parameters.AddWithValue("@DisplayName", (object?)displayName ?? string.Empty);
+            insertCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+
+            return await insertCommand.ExecuteNonQueryAsync() == 1;
+        }
+        else
+        {
+            // Unexpected schema: try to insert minimal columns (Id, Email, CreatedAt) if possible
+            var cols = new List<string> { "Id", "Email", "CreatedAt" };
+            var vals = new List<string> { "@Id", "@Email", "@CreatedAt" };
+            var insertSql = $"INSERT INTO Users ({string.Join(", ", cols)}) VALUES ({string.Join(", ", vals)})";
+            await using var insertCommand = connection.CreateCommand();
+            insertCommand.CommandText = insertSql;
+            insertCommand.Parameters.AddWithValue("@Id", Guid.NewGuid().ToString());
+            insertCommand.Parameters.AddWithValue("@Email", email.Trim().ToLowerInvariant());
+            insertCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+
+            return await insertCommand.ExecuteNonQueryAsync() == 1;
+        }
     }
 
     public async Task<UserAccount?> AuthenticateAsync(string email, string password)
@@ -56,29 +143,111 @@ public class UserService
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
 
+        await EnsureUserColumnsLoadedAsync(connection);
+
+        // Build SELECT list dynamically
+        var selectCols = new List<string> { "Id", "Email" };
+        bool hasHashSalt = HasColumn("PasswordHash") && HasColumn("PasswordSalt");
+        bool hasSinglePassword = HasColumn("Password");
+        if (hasHashSalt)
+        {
+            selectCols.Add("PasswordHash");
+            selectCols.Add("PasswordSalt");
+        }
+        else if (hasSinglePassword)
+        {
+            selectCols.Add("Password");
+        }
+
+        if (HasColumn("DisplayName")) selectCols.Add("DisplayName");
+        if (HasColumn("CreatedAt")) selectCols.Add("CreatedAt");
+        if (HasColumn("LastLoginAt")) selectCols.Add("LastLoginAt");
+
+        var sql = $"SELECT {string.Join(", ", selectCols)} FROM Users WHERE Email = @Email";
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Id, Email, PasswordHash, PasswordSalt, DisplayName, CreatedAt, LastLoginAt FROM Users WHERE Email = $Email";
-        command.Parameters.AddWithValue("$Email", email.Trim().ToLowerInvariant());
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("@Email", email.Trim().ToLowerInvariant());
 
         await using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
-            var hash = reader.GetString(2);
-            var salt = reader.GetString(3);
-            if (_passwordHasher.Verify(password, hash, salt))
+            var idx = 0;
+            var idStr = reader.IsDBNull(idx) ? string.Empty : reader.GetString(idx); idx++;
+            var emailStr = reader.IsDBNull(idx) ? string.Empty : reader.GetString(idx); idx++;
+
+            string storedHash = string.Empty;
+            string storedSalt = string.Empty;
+            string storedSinglePassword = string.Empty;
+
+            if (hasHashSalt)
+            {
+                storedHash = reader.IsDBNull(idx) ? string.Empty : reader.GetString(idx); idx++;
+                storedSalt = reader.IsDBNull(idx) ? string.Empty : reader.GetString(idx); idx++;
+            }
+            else if (hasSinglePassword)
+            {
+                storedSinglePassword = reader.IsDBNull(idx) ? string.Empty : reader.GetString(idx); idx++;
+            }
+
+            string? displayName = null;
+            DateTime createdAt = DateTime.MinValue;
+            DateTime? lastLogin = null;
+
+            if (HasColumn("DisplayName"))
+            {
+                displayName = reader.IsDBNull(idx) ? null : reader.GetString(idx);
+                idx++;
+            }
+            if (HasColumn("CreatedAt"))
+            {
+                createdAt = reader.IsDBNull(idx) ? DateTime.MinValue : reader.GetDateTime(idx);
+                idx++;
+            }
+            if (HasColumn("LastLoginAt"))
+            {
+                lastLogin = reader.IsDBNull(idx) ? null : (DateTime?)reader.GetDateTime(idx);
+                idx++;
+            }
+
+            bool passwordOk = false;
+            if (hasHashSalt)
+            {
+                passwordOk = _passwordHasher.Verify(password, storedHash, storedSalt);
+            }
+            else if (hasSinglePassword)
+            {
+                if (!string.IsNullOrEmpty(storedSinglePassword) && storedSinglePassword.Contains('|'))
+                {
+                    var parts = storedSinglePassword.Split('|', 2);
+                    var salt = parts[0];
+                    var hash = parts.Length > 1 ? parts[1] : string.Empty;
+                    passwordOk = _passwordHasher.Verify(password, hash, salt);
+                }
+                else
+                {
+                    // Unsupported stored format
+                    passwordOk = false;
+                }
+            }
+
+            if (passwordOk)
             {
                 var account = new UserAccount
                 {
-                    Id = Guid.Parse(reader.GetString(0)),
-                    Email = reader.GetString(1),
-                    PasswordHash = hash,
-                    PasswordSalt = salt,
-                    DisplayName = reader.IsDBNull(4) ? null : reader.GetString(4),
-                    CreatedAt = DateTime.Parse(reader.GetString(5), null, DateTimeStyles.RoundtripKind),
-                    LastLoginAt = reader.IsDBNull(6) ? null : DateTime.Parse(reader.GetString(6), null, DateTimeStyles.RoundtripKind)
+                    Id = string.IsNullOrEmpty(idStr) ? Guid.Empty : Guid.TryParse(idStr, out var parsedId) ? parsedId : Guid.Empty,
+                    Email = emailStr,
+                    PasswordHash = hasHashSalt ? storedHash : storedSinglePassword,
+                    PasswordSalt = hasHashSalt ? storedSalt : string.Empty,
+                    DisplayName = displayName,
+                    CreatedAt = createdAt,
+                    LastLoginAt = lastLogin
                 };
 
-                await UpdateLastLoginAsync(connection, account.Id);
+                // Đóng reader trước khi cập nhật thời gian đăng nhập
+                await reader.DisposeAsync();
+
+                // Update last login using a new, separate connection to avoid reader conflicts
+                await UpdateLastLoginAsync(account.Id);
                 return account;
             }
         }
@@ -86,82 +255,51 @@ public class UserService
         return null;
     }
 
-    private static async Task UpdateLastLoginAsync(SqliteConnection connection, Guid userId)
+    // Hàm cập nhật thời gian đăng nhập lần cuối
+    private async Task UpdateLastLoginAsync(Guid userId)
     {
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+
+        // Check whether LastLoginAt column exists to avoid SQL errors
+        await using (var checkCmd = connection.CreateCommand())
+        {
+            checkCmd.CommandText = "SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'LastLoginAt'";
+            var exists = (int?)await checkCmd.ExecuteScalarAsync() ?? 0;
+            if (exists == 0)
+            {
+                return; // column missing, nothing to update
+            }
+        }
+
         await using var updateCommand = connection.CreateCommand();
-        updateCommand.CommandText = "UPDATE Users SET LastLoginAt = $LastLoginAt WHERE Id = $Id";
-        updateCommand.Parameters.AddWithValue("$LastLoginAt", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-        updateCommand.Parameters.AddWithValue("$Id", userId.ToString());
+        updateCommand.CommandText = "UPDATE Users SET LastLoginAt = @LastLoginAt WHERE Id = @Id";
+
+        updateCommand.Parameters.AddWithValue("@LastLoginAt", DateTime.UtcNow);
+        updateCommand.Parameters.AddWithValue("@Id", userId.ToString());
         await updateCommand.ExecuteNonQueryAsync();
     }
 
-    public async Task<string?> CreateOtpAsync(string email, TimeSpan lifetime)
+    // CHỨC NĂNG MỚI: CHỈ KIỂM TRA EMAIL CÓ TỒN TẠI TRONG BẢNG USERS HAY KHÔNG
+    // Dùng để xác nhận trước khi gửi OTP (In-memory)
+    public async Task<bool> CheckEmailExistsAsync(string email)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
 
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
 
-        await using (var checkUserCommand = connection.CreateCommand())
-        {
-            checkUserCommand.CommandText = "SELECT COUNT(1) FROM Users WHERE Email = $Email";
-            checkUserCommand.Parameters.AddWithValue("$Email", normalizedEmail);
-            var exists = (long?)await checkUserCommand.ExecuteScalarAsync() ?? 0;
-            if (exists == 0)
-            {
-                return null;
-            }
-        }
+        await EnsureUserColumnsLoadedAsync(connection);
 
-        var code = Random.Shared.Next(100000, 999999).ToString(CultureInfo.InvariantCulture);
+        await using var checkUserCommand = connection.CreateCommand();
+        checkUserCommand.CommandText = "SELECT COUNT(1) FROM Users WHERE Email = @Email";
+        checkUserCommand.Parameters.AddWithValue("@Email", normalizedEmail);
 
-        await using (var deleteCommand = connection.CreateCommand())
-        {
-            deleteCommand.CommandText = "DELETE FROM OtpRequests WHERE Email = $Email";
-            deleteCommand.Parameters.AddWithValue("$Email", normalizedEmail);
-            await deleteCommand.ExecuteNonQueryAsync();
-        }
-
-        await using var insertCommand = connection.CreateCommand();
-        insertCommand.CommandText = @"INSERT INTO OtpRequests (Id, Email, Code, ExpiresAt, CreatedAt)
-                                      VALUES ($Id, $Email, $Code, $ExpiresAt, $CreatedAt)";
-        insertCommand.Parameters.AddWithValue("$Id", Guid.NewGuid().ToString());
-        insertCommand.Parameters.AddWithValue("$Email", normalizedEmail);
-        insertCommand.Parameters.AddWithValue("$Code", code);
-        insertCommand.Parameters.AddWithValue("$ExpiresAt", DateTime.UtcNow.Add(lifetime).ToString("O", CultureInfo.InvariantCulture));
-        insertCommand.Parameters.AddWithValue("$CreatedAt", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
-        var result = await insertCommand.ExecuteNonQueryAsync();
-        return result == 1 ? code : null;
+        var exists = (int?)await checkUserCommand.ExecuteScalarAsync() ?? 0;
+        return exists > 0;
     }
 
-    public async Task<bool> ValidateOtpAsync(string email, string code)
-    {
-        await using var connection = _databaseService.GetConnection();
-        await connection.OpenAsync();
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = @"SELECT Id, ExpiresAt FROM OtpRequests WHERE Email = $Email AND Code = $Code";
-        command.Parameters.AddWithValue("$Email", email.Trim().ToLowerInvariant());
-        command.Parameters.AddWithValue("$Code", code.Trim());
-
-        await using var reader = await command.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            var expiresAt = DateTime.Parse(reader.GetString(1), null, DateTimeStyles.RoundtripKind);
-            if (expiresAt > DateTime.UtcNow)
-            {
-                var id = reader.GetString(0);
-                await using var deleteCommand = connection.CreateCommand();
-                deleteCommand.CommandText = "DELETE FROM OtpRequests WHERE Id = $Id";
-                deleteCommand.Parameters.AddWithValue("$Id", id);
-                await deleteCommand.ExecuteNonQueryAsync();
-                return true;
-            }
-        }
-
-        return false;
-    }
-
+    // CHỨC NĂNG CÒN LẠI: Cập nhật mật khẩu sau khi OTP đã được xác minh (in-memory)
     public async Task<bool> UpdatePasswordAsync(string email, string newPassword)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
@@ -170,11 +308,27 @@ public class UserService
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
 
-        await using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE Users SET PasswordHash = $Hash, PasswordSalt = $Salt WHERE Email = $Email";
-        command.Parameters.AddWithValue("$Hash", hash);
-        command.Parameters.AddWithValue("$Salt", salt);
-        command.Parameters.AddWithValue("$Email", normalizedEmail);
-        return await command.ExecuteNonQueryAsync() == 1;
+        await EnsureUserColumnsLoadedAsync(connection);
+
+        if (HasColumn("PasswordHash") && HasColumn("PasswordSalt"))
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Users SET PasswordHash = @Hash, PasswordSalt = @Salt WHERE Email = @Email";
+            command.Parameters.AddWithValue("@Hash", hash);
+            command.Parameters.AddWithValue("@Salt", salt);
+            command.Parameters.AddWithValue("@Email", normalizedEmail);
+            return await command.ExecuteNonQueryAsync() == 1;
+        }
+        else if (HasColumn("Password"))
+        {
+            var combined = $"{salt}|{hash}";
+            await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Users SET Password = @Password WHERE Email = @Email";
+            command.Parameters.AddWithValue("@Password", combined);
+            command.Parameters.AddWithValue("@Email", normalizedEmail);
+            return await command.ExecuteNonQueryAsync() == 1;
+        }
+
+        return false;
     }
 }
