@@ -114,8 +114,8 @@ public partial class MainWindow : Window
             }
             else
             {
-                targetX = MainViewModel.CanvasWidth / 2;
-                targetY = MainViewModel.CanvasHeight / 2;
+                targetX = _viewModel.CanvasWidth / 2;
+                targetY = _viewModel.CanvasHeight / 2;
             }
 
             double scaledTargetX = targetX * currentZoom;
@@ -197,23 +197,40 @@ public partial class MainWindow : Window
 
     #region Node Interaction
 
+    private Point _lastNodeDragPoint;
     private void NodeThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
     {
         if (sender is not Thumb thumb || thumb.Tag is not NodeViewModel node) return;
         if (!node.IsDraggable) return;
 
-        double changeX = e.HorizontalChange;
-        double changeY = e.VerticalChange;
+        // 1. SỬA LỖI TRƯỢT KHI ZOOM:
+        // Lấy vị trí chuột mới trên Canvas
+        var currentPoint = Mouse.GetPosition(MindmapWorkspace);
 
-        double newX = node.X + changeX;
-        double newY = node.Y + changeY;
+        // Tính khoảng cách di chuyển bằng phép trừ toạ độ thực tế
+        // Cách này loại bỏ hoàn toàn sai số do tỷ lệ Zoom
+        double deltaX = currentPoint.X - _lastNodeDragPoint.X;
+        double deltaY = currentPoint.Y - _lastNodeDragPoint.Y;
 
-        // SỬA: Clamp theo kích thước Canvas 20000
-        newX = Math.Clamp(newX, 0, MainViewModel.CanvasWidth - node.Width);
-        newY = Math.Clamp(newY, 0, MainViewModel.CanvasHeight - node.Height);
+        double newX = node.X + deltaX;
+        double newY = node.Y + deltaY;
 
+        // 2. SỬA LỖI KÍCH THƯỚC ĐỘNG:
+        // Thay vì dùng MainViewModel.CanvasWidth (số tĩnh), hãy dùng _viewModel.CanvasWidth
+        // (Đây là property động thay đổi theo ComboBox mà ta đã làm ở bước trước)
+        double currentCanvasW = _viewModel.CanvasWidth;
+        double currentCanvasH = _viewModel.CanvasHeight;
+
+        // Giới hạn biên (Clamping) theo kích thước hiện tại
+        newX = Math.Max(0, Math.Min(newX, currentCanvasW - node.Width));
+        newY = Math.Max(0, Math.Min(newY, currentCanvasH - node.Height));
+
+        // 3. Cập nhật
         node.X = newX;
         node.Y = newY;
+
+        // Lưu lại vị trí để tính cho frame tiếp theo
+        _lastNodeDragPoint = currentPoint;
     }
 
     private void Thumb_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -398,5 +415,109 @@ public partial class MainWindow : Window
                 VisiblePbConfirmPass.Text = "";
             }
         }
+    }
+
+    private void Thumb_DragStarted(object sender, DragStartedEventArgs e)
+    {
+        if (sender is Thumb && _viewModel.SelectedNode != null)
+        {
+            // Lấy vị trí chuột tính theo hệ quy chiếu của Canvas (đã bao gồm Zoom)
+            _lastNodeDragPoint = Mouse.GetPosition(MindmapWorkspace);
+        }
+    }
+
+    private void Thumb_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        var thumb = sender as Thumb;
+        var node = thumb.DataContext as NodeViewModel;
+
+        if (node == null) return;
+
+        // Lấy hướng kéo từ Tag (Top, Bottom, Left...) đã gán bên XAML
+        string direction = thumb.Tag as string;
+
+        // e.HorizontalChange: Độ lệch ngang (kéo sang phải là dương, trái là âm)
+        // e.VerticalChange: Độ lệch dọc (kéo xuống là dương, lên là âm)
+
+        switch (direction)
+        {
+            case "Right":
+                // Kéo phải thì chỉ cần cộng thêm độ lệch vào chiều rộng
+                node.Width += e.HorizontalChange;
+                break;
+
+            case "Bottom":
+                // Kéo xuống thì cộng thêm độ lệch vào chiều cao
+                node.Height += e.VerticalChange;
+                break;
+
+            case "Left":
+                // Kéo trái khó hơn:
+                // 1. Tính chiều rộng mới (chiều rộng cũ - độ lệch) -> Vì kéo sang trái (âm) thì rộng ra
+                double newWidth = node.Width - e.HorizontalChange;
+                // 2. Chỉ cho phép đổi nếu chiều rộng > 50 (giới hạn an toàn)
+                if (newWidth > 50)
+                {
+                    node.X += e.HorizontalChange; // Dời vị trí X sang trái
+                    node.Width = newWidth;        // Tăng chiều rộng
+                }
+                break;
+
+            case "Top":
+                double newHeight = node.Height - e.VerticalChange;
+                if (newHeight > 40)
+                {
+                    node.Y += e.VerticalChange; // Dời vị trí Y lên trên
+                    node.Height = newHeight;    // Tăng chiều cao
+                }
+                break;
+
+            case "BottomRight":
+                node.Width += e.HorizontalChange;
+                node.Height += e.VerticalChange;
+                break;
+
+            case "TopRight":
+                node.Width += e.HorizontalChange;
+                // Logic Top (giống case "Top" ở trên)
+                double newHeightTR = node.Height - e.VerticalChange;
+                if (newHeightTR > 40)
+                {
+                    node.Y += e.VerticalChange;
+                    node.Height = newHeightTR;
+                }
+                break;
+
+            case "BottomLeft":
+                node.Height += e.VerticalChange;
+                // Logic Left (giống case "Left" ở trên)
+                double newWidthBL = node.Width - e.HorizontalChange;
+                if (newWidthBL > 50)
+                {
+                    node.X += e.HorizontalChange;
+                    node.Width = newWidthBL;
+                }
+                break;
+
+            case "TopLeft":
+                // Kết hợp cả logic Top và Left
+                double newWidthTL = node.Width - e.HorizontalChange;
+                double newHeightTL = node.Height - e.VerticalChange;
+
+                if (newWidthTL > 50)
+                {
+                    node.X += e.HorizontalChange;
+                    node.Width = newWidthTL;
+                }
+                if (newHeightTL > 40)
+                {
+                    node.Y += e.VerticalChange;
+                    node.Height = newHeightTL;
+                }
+                break;
+        }
+
+        // Ngăn không cho sự kiện này lan ra ngoài (để không bị dính vào sự kiện di chuyển node)
+        e.Handled = true;
     }
 }

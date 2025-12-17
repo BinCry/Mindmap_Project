@@ -1,3 +1,6 @@
+using MindmapApp.Commands;
+using MindmapApp.Models;
+using MindmapApp.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -6,14 +9,20 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using MindmapApp.Commands;
-using MindmapApp.Models;
-using MindmapApp.Services;
 
 namespace MindmapApp.ViewModels;
+
+// Tạo class đơn giản để lưu tùy chọn kích thước
+public class CanvasSizeOption
+{
+    public string Name { get; set; } // Tên hiển thị: Nhỏ, Vừa, Lớn
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
 
 public class MainViewModel : BaseViewModel
 {
@@ -44,14 +53,40 @@ public class MainViewModel : BaseViewModel
     private bool _isProfileDialogOpen;
     private string _editDisplayName = string.Empty;
 
-    // SỬA: Tăng kích thước Canvas lên cực lớn để tạo cảm giác vô tận
-    public const double CanvasWidth = 20000;
-    public const double CanvasHeight = 20000;
-
+   
     public event EventHandler? RequestCenterView;
     public event EventHandler? LogoutRequested;
     #endregion
 
+    public List<CanvasSizeOption> SizeOptions { get; } = new List<CanvasSizeOption>
+    {
+        new CanvasSizeOption { Name = "Nhỏ (3000 x 2000)", Width = 3000, Height = 2000 },
+        new CanvasSizeOption { Name = "Vừa (5000 x 4000)", Width = 5000, Height = 4000 },
+        new CanvasSizeOption { Name = "Lớn (8000 x 6000)", Width = 8000, Height = 6000 }
+    };
+
+    //  Biến lưu lựa chọn hiện tại
+    private CanvasSizeOption _selectedSize;
+    public CanvasSizeOption SelectedSize
+    {
+        get => _selectedSize;
+        set
+        {
+            if (_selectedSize != value)
+            {
+                _selectedSize = value;
+                OnPropertyChanged(nameof(SelectedSize));
+
+                // Quan trọng: Thông báo cho UI biết là Width/Height đã thay đổi
+                OnPropertyChanged(nameof(CanvasWidth));
+                OnPropertyChanged(nameof(CanvasHeight));
+            }
+        }
+    }
+
+    // 4. Property Width/Height trả về giá trị động theo lựa chọn
+    public double CanvasWidth => SelectedSize.Width;
+    public double CanvasHeight => SelectedSize.Height;
     public MainViewModel(MindmapExportService exportService, MindmapSearchService searchService, MindmapAiService aiService, MindmapStorageService storageService, UserService userService, UserAccount currentUser)
     {
         _exportService = exportService;
@@ -98,6 +133,9 @@ public class MainViewModel : BaseViewModel
 
         _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _autoSaveTimer.Tick += async (_, _) => await AutoSaveAsync();
+
+        // Mặc định chọn kích thước Nhỏ
+        SelectedSize = SizeOptions[0];
     }
 
     private void InitializeCommands()
@@ -314,7 +352,7 @@ public class MainViewModel : BaseViewModel
         return $"{prefix} {i}";
     }
 
-    // SỬA: Tính toán vị trí tạo node dựa trên Canvas 20000x20000
+    // SỬA: Tính toán vị trí tạo node dựa trên Canvas
     private void CreateCentralNode()
     {
         Nodes.Clear();
@@ -989,4 +1027,5 @@ public class MainViewModel : BaseViewModel
         };
     }
     #endregion
+
 }

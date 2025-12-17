@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Windows.Media;
 using MindmapApp.Models;
-using System.Collections.ObjectModel; 
+using System.Collections.ObjectModel;
 
 namespace MindmapApp.ViewModels;
 
 public class NodeViewModel : BaseViewModel
 {
-
     #region Relations
     private NodeViewModel? _parent;
-    // Danh sách các node con
     public ObservableCollection<NodeViewModel> Children { get; } = new();
 
     public NodeViewModel? Parent
@@ -20,16 +18,8 @@ public class NodeViewModel : BaseViewModel
         {
             if (_parent != value)
             {
-                // 1. Rời khỏi "gia đình" cũ (nếu có)
-                if (_parent != null)
-                {
-                    _parent.Children.Remove(this);
-                }
-
-                // 2. Gán cha mới
+                if (_parent != null) _parent.Children.Remove(this);
                 SetProperty(ref _parent, value);
-
-                // 3. Gia nhập "gia đình" mới
                 if (_parent != null && !_parent.Children.Contains(this))
                 {
                     _parent.Children.Add(this);
@@ -37,7 +27,8 @@ public class NodeViewModel : BaseViewModel
             }
         }
     }
-        #endregion
+    #endregion
+
     #region Fields & Constructor
 
     private readonly NodeModel _model;
@@ -47,7 +38,7 @@ public class NodeViewModel : BaseViewModel
     {
         _model = model;
     }
-    // Khả năng kéo thả: 
+
     public bool IsDraggable
     {
         get => _model.IsDraggable;
@@ -60,7 +51,7 @@ public class NodeViewModel : BaseViewModel
             }
         }
     }
-    // Khả năng Xóa: 
+
     public bool IsDeletable
     {
         get => _model.IsDeletable;
@@ -79,10 +70,7 @@ public class NodeViewModel : BaseViewModel
     #endregion
 
     #region Identity
-
-    // Id chỉ đọc, định danh duy nhất của Node
     public Guid Id => _model.Id;
-
     #endregion
 
     #region Geometry (Position & Size) 
@@ -100,9 +88,7 @@ public class NodeViewModel : BaseViewModel
             {
                 _model.X = value;
                 OnPropertyChanged();
-
-               // Kích hoạt dây vẽ lại: 
-                OnPropertyChanged(nameof(CenterX));
+                OnPropertyChanged(nameof(CenterX)); // Cập nhật tâm dây nối
             }
         }
     }
@@ -116,7 +102,7 @@ public class NodeViewModel : BaseViewModel
             {
                 _model.Y = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CenterY)); // Báo tâm Y thay đổi
+                OnPropertyChanged(nameof(CenterY)); // Cập nhật tâm dây nối
             }
         }
     }
@@ -126,11 +112,14 @@ public class NodeViewModel : BaseViewModel
         get => _model.Width;
         set
         {
+            // LOGIC HỢP NHẤT: Kiểm tra an toàn trước khi gán vào Model
+            if (value < 50) value = 50;
+
             if (Math.Abs(_model.Width - value) > 0.1)
             {
                 _model.Width = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CenterX)); // Rộng đổi -> Tâm lệch
+                OnPropertyChanged(nameof(CenterX)); // Rộng đổi -> Tâm X lệch -> Cập nhật dây
             }
         }
     }
@@ -140,11 +129,14 @@ public class NodeViewModel : BaseViewModel
         get => _model.Height;
         set
         {
+            // LOGIC HỢP NHẤT: Kiểm tra an toàn trước khi gán vào Model
+            if (value < 40) value = 40;
+
             if (Math.Abs(_model.Height - value) > 0.1)
             {
                 _model.Height = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CenterY)); // Cao đổi -> Tâm lệch
+                OnPropertyChanged(nameof(CenterY)); // Cao đổi -> Tâm Y lệch -> Cập nhật dây
             }
         }
     }
@@ -277,7 +269,6 @@ public class NodeViewModel : BaseViewModel
 
     #region View State (Selection)
 
-    // Property này không nằm trong Model, chỉ dùng cho View tạm thời
     public bool IsSelected
     {
         get => _isSelected;
@@ -285,5 +276,4 @@ public class NodeViewModel : BaseViewModel
     }
 
     #endregion
-
 }

@@ -14,7 +14,7 @@
         Background="{DynamicResource BackgroundBrush}"
         WindowStyle="None"
         UseLayoutRounding="True">
-
+    <!--#region Resources-->
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#007ACC"/>
         <DropShadowEffect x:Key="SelectionGlow" Color="#007ACC" BlurRadius="20" ShadowDepth="0" Opacity="0.8"/>
@@ -23,50 +23,6 @@
         <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <conv:ConnectionToGeometryConverter x:Key="ConnectionToGeometryConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-
-        <Style TargetType="PasswordBox" x:Key="ModernPasswordBox">
-            <Setter Property="Height" Value="35"/>
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="Padding" Value="10,0,35,0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="PasswordBox">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="6">
-                            <ScrollViewer x:Name="PART_ContentHost" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="TextBox" x:Key="ModernTextBoxReveal">
-            <Setter Property="Height" Value="35"/>
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="Padding" Value="10,0,35,0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="6">
-                            <ScrollViewer x:Name="PART_ContentHost" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <Storyboard x:Key="HideSidebar">
             <anim:GridLengthAnimation Storyboard.TargetName="LeftColumn" Storyboard.TargetProperty="Width" To="0" Duration="0:0:0.2" />
@@ -81,69 +37,12 @@
             <anim:GridLengthAnimation Storyboard.TargetName="RightColumn" Storyboard.TargetProperty="Width" To="320" Duration="0:0:0.2" />
         </Storyboard>
 
-        <Style x:Key="SectionTitleText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-        </Style>
-
-        <Style x:Key="SidebarCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
-            <Setter Property="CornerRadius" Value="18" />
-            <Setter Property="Padding" Value="18" />
-            <Setter Property="Margin" Value="0,14,0,0" />
-        </Style>
-
-        <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Padding" Value="14,10" />
-            <Setter Property="Margin" Value="0,0,12,0" />
-        </Style>
-
-        <Style TargetType="ToggleButton" x:Key="ToolbarToggle">
-            <Setter Property="Padding" Value="14,10" />
-            <Setter Property="Margin" Value="0,0,12,0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Background" Value="#19324E" />
-            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryDarkBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="16" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,2" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBrush}" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentBrush}" />
-                                <Setter Property="Foreground" Value="#FF273C4E" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="border" Property="Background" Value="#FFE5EBF5" />
-                                <Setter Property="Foreground" Value="#FF9AA9BC" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="ListBox" x:Key="GhostListBox">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Margin" Value="0" />
-        </Style>
 
         <LinearGradientBrush x:Key="SidebarGradient" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#102033" Offset="0" />
             <GradientStop Color="#0C1828" Offset="1" />
         </LinearGradientBrush>
-
+        
         <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -160,63 +59,11 @@
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
-
-        <Style x:Key="SmallArrowComboBox" TargetType="ComboBox">
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="10,0,0,0"/>
-            <Setter Property="ItemContainerStyle">
-                <Setter.Value>
-                    <Style TargetType="ComboBoxItem">
-                        <Setter Property="Foreground" Value="White" />
-                        <Setter Property="FontSize" Value="13" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ComboBoxItem">
-                                    <Border x:Name="ItemBorder" Padding="10,8" Background="#454545" BorderThickness="0">
-                                        <ContentPresenter VerticalAlignment="Center" />
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="ItemBorder" Property="Background" Value="#007ACC"/>
-                                        </Trigger>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="ItemBorder" Property="Background" Value="#005A9E"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <ToggleButton Name="ToggleButton" Template="{StaticResource ComboBoxToggleButton}" Grid.Column="2" Focusable="false" IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press"/>
-                            <ContentPresenter Name="ContentSite" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Margin="10,0,30,0" VerticalAlignment="Center" HorizontalAlignment="Left" TextElement.Foreground="White" />
-                            <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
-                                <Grid Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                    <Border x:Name="DropDownBorder" Background="#454545" BorderThickness="1" BorderBrush="#888888" CornerRadius="4" Margin="0,2,0,0">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="3" Opacity="0.5"/>
-                                        </Border.Effect>
-                                        <ScrollViewer Margin="0" SnapsToDevicePixels="True">
-                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
-                                        </ScrollViewer>
-                                    </Border>
-                                </Grid>
-                            </Popup>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        
+        
     </Window.Resources>
-
+    <!--#endregion-->
+    
     <Grid>
         <Grid.Effect>
             <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.15" />
@@ -226,6 +73,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!--Thanh trên cùng chứa [-] [x] -->
         <DockPanel Grid.Row="0" HorizontalAlignment="Stretch" LastChildFill="False" Background="{DynamicResource PrimaryBrush}" Height="25" Margin="0,0,0,0">
             <Image DockPanel.Dock="Right" Source="/Resources/x.png" PreviewMouseDown="Image_PreviewMouseDown" Cursor="Hand" Margin="10,0,20,0">
                 <Image.Style>
@@ -253,6 +101,7 @@
             </Image>
         </DockPanel>
 
+        
         <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="28" Padding="18">
             <Grid>
                 <Grid.RowDefinitions>
@@ -268,6 +117,8 @@
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="2*" />
                     </Grid.ColumnDefinitions>
+                    
+                    <!-- Nơi hiển thị logo trang trí , Tên phần mềm, Ô nhập tên -->
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse Width="10" Height="10" Fill="#FF9AD1FF" Margin="0,0,10,0" />
@@ -292,6 +143,7 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- Module tìm kiếm -->
                     <Border Grid.Column="1" Margin="0,0,0,0" Background="{DynamicResource SurfaceBrush}" CornerRadius="20">
                         <StackPanel>
                             <TextBlock Text="Tìm kiếm node" FontWeight="SemiBold" FontSize="16" Margin="0,10,0,0"/>
@@ -316,6 +168,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+                        
+                        <!-- Thanh công cụ của ứng dụng-->
                         <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddNodeCommand}" Content="Thêm Node" MinWidth="90"/>
@@ -331,8 +185,16 @@
                                 <Button Style="{StaticResource ToolbarButton}" Content="🌗 Theme" Command="{Binding ToggleThemeCommand}" MinWidth="90"/>
                                 <Button Style="{StaticResource ToolbarButton}" Content="Xóa tất cả" Command="{Binding ClearAllCommand}" MinWidth="90" Background="#FFEF9A9A" Foreground="#FFC62828" BorderBrush="#FFEF5350"/>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677"/>
+                                <TextBlock Text="Kích thước:" VerticalAlignment="Center" Foreground="#555" Margin="0,0,5,0"/>
+                                <ComboBox ItemsSource="{Binding SizeOptions}" 
+                                          SelectedItem="{Binding SelectedSize}" 
+                                          DisplayMemberPath="Name"
+                                          Style="{StaticResource SmallArrowComboBox}" 
+                                          Width="160" Height="30" Background="#333"/>
                             </StackPanel>
                         </ScrollViewer>
+                        
+                        <!-- Nút đóng mở của hộp định dạng-->
                         <ToggleButton Grid.Column="1" x:Name="BtnToggleRight" Click="BtnToggleRight_Click" IsChecked="True" Cursor="Hand" Margin="0,5,15,5" Height="35" Background="Transparent" BorderThickness="0" ToolTip="Đóng/Mở Menu Định Dạng">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
@@ -357,6 +219,8 @@
                                 </ControlTemplate>
                             </ToggleButton.Template>
                         </ToggleButton>
+                        
+                        
                     </Grid>
                 </Border>
 
@@ -373,6 +237,7 @@
                                 <TextBlock Text="Nội dung Node" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextBrush}" />
                                 <TextBlock Text="Quản lý node và tài liệu hiện tại" Foreground="#88FFFFFF" Margin="0,4,0,0" />
                                 <Border Style="{StaticResource SidebarCardStyle}">
+                                    <!-- Tiêu đề và nội dung node-->
                                     <StackPanel>
                                         <TextBlock Text="Chưa có node nào được chọn" Foreground="#88FFFFFF" TextWrapping="Wrap" Margin="0,12,0,0">
                                             <TextBlock.Style>
@@ -403,12 +268,10 @@
                                             <TextBox Text="{Binding SelectedNode.Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="150" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </StackPanel>
+                                    
                                 </Border>
                                 <Border Style="{StaticResource SidebarCardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="Ghi chú" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding StatusMessage}" Foreground="#F2FFFFFF" TextWrapping="Wrap" />
-                                    </StackPanel>
+                                   
                                 </Border>
                             </StackPanel>
                         </ScrollViewer>
@@ -421,8 +284,8 @@
                     <Border Grid.Column="1" Background="{DynamicResource BackgroundBrush}" CornerRadius="26" Padding="0" ClipToBounds="True">
                         <ScrollViewer x:Name="MainScrollViewer" Background="{DynamicResource GridBackgroundBrush}" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" PanningMode="None">
                             <Grid x:Name="MindmapWorkspace" 
-                                  Width="{x:Static vm:MainViewModel.CanvasWidth}" 
-                                  Height="{x:Static vm:MainViewModel.CanvasHeight}" 
+                                  Width="{Binding CanvasWidth}" 
+                                  Height="{Binding CanvasHeight}"
                                   Background="{DynamicResource GridBackgroundBrush}" 
                                   MouseDown="MindmapWorkspace_MouseDown" 
                                   MouseMove="MindmapWorkspace_MouseMove" 
@@ -431,12 +294,16 @@
                                     <ScaleTransform ScaleX="{Binding ZoomLevel}" ScaleY="{Binding ZoomLevel}" />
                                 </Grid.LayoutTransform>
                                 <Border BorderBrush="#1A000000" BorderThickness="2" Background="#20FFFFFF" Opacity="1" IsHitTestVisible="False"/>
+
+                                <!-- Dây nối-->
                                 <ItemsControl ItemsSource="{Binding Connections}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <Canvas />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
+                                    
+                                   
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
                                             <Grid>
@@ -493,7 +360,10 @@
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
+                                    
                                 </ItemsControl>
+                                
+                                <!--  Node -->
                                 <ItemsControl ItemsSource="{Binding Nodes}" Canvas.ZIndex="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -507,8 +377,16 @@
                                         </Style>
                                     </ItemsControl.ItemContainerStyle>
                                     <ItemsControl.ItemTemplate>
+                                        
+                                        
                                         <DataTemplate DataType="{x:Type vm:NodeViewModel}">
-                                            <Thumb Width="{Binding Width}" Height="{Binding Height}" Tag="{Binding}" DragDelta="NodeThumb_OnDragDelta" PreviewMouseLeftButtonDown="Thumb_PreviewMouseLeftButtonDown">
+                                            <Grid Width="{Binding Width}" Height="{Binding Height}">
+                                            
+                                            <Thumb Width="{Binding Width}" Height="{Binding Height}" 
+                                                   Tag="{Binding}" DragDelta="NodeThumb_OnDragDelta" 
+                                                   PreviewMouseLeftButtonDown="Thumb_PreviewMouseLeftButtonDown"
+                                                   DragStarted="Thumb_DragStarted"
+                                                   >
                                                 <Thumb.Style>
                                                     <Style TargetType="Thumb">
                                                         <Setter Property="Cursor" Value="Hand"/>
@@ -560,16 +438,33 @@
                                                     </ContextMenu>
                                                 </Thumb.ContextMenu>
                                             </Thumb>
+
+                                                <Thumb Tag="TopLeft"     Cursor="SizeNWSE" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Left" Background="Transparent" />
+                                                <Thumb Tag="TopRight"    Cursor="SizeNESW" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Right" Background="Transparent" />
+                                                <Thumb Tag="BottomLeft"  Cursor="SizeNESW" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="Transparent" />
+                                                <Thumb Tag="BottomRight" Cursor="SizeNWSE" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Bottom" HorizontalAlignment="Right" Background="Transparent" />
+
+                                                <Thumb Tag="Top"    Cursor="SizeNS" DragDelta="Thumb_DragDelta"  Height="5" VerticalAlignment="Top" Margin="10,0" Background="Transparent" />
+                                                <Thumb Tag="Bottom" Cursor="SizeNS" DragDelta="Thumb_DragDelta"  Height="5" VerticalAlignment="Bottom" Margin="10,0" Background="Transparent" />
+                                                <Thumb Tag="Left"   Cursor="SizeWE" DragDelta="Thumb_DragDelta"  Width="5" HorizontalAlignment="Left" Margin="0,10" Background="Transparent" />
+                                                <Thumb Tag="Right"  Cursor="SizeWE" DragDelta="Thumb_DragDelta"  Width="5" HorizontalAlignment="Right" Margin="0,10" Background="Transparent" />
+                                            </Grid>
                                         </DataTemplate>
+                                        
+                                        
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </Grid>
+                            
                         </ScrollViewer>
                     </Border>
                     <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="26,0,0,26" Padding="20">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <!-- Định dạng cho Node và dây -->
                             <StackPanel>
                                 <TextBlock Text="Định dạng" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
+                               
+                                <!-- Định dạng cho  Node -->
                                 <StackPanel Visibility="{Binding SelectedNode, Converter={StaticResource NullToVisibilityConverter}}">
                                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Padding="15" Margin="0,0,0,15">
                                         <StackPanel>
@@ -635,6 +530,8 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
+                                
+                                <!-- Định dạng cho Dây -->
                                 <StackPanel Visibility="{Binding SelectedConnection, Converter={StaticResource NullToVisibilityConverter}}">
                                     <Border Background="#2D2D2D" CornerRadius="12" Padding="15">
                                         <StackPanel>
@@ -672,6 +569,7 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
+                               
                                 <StackPanel HorizontalAlignment="Center" Margin="0,150,0,0" Opacity="0.5">
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
@@ -698,11 +596,11 @@
             </Grid>
         </Border>
 
-        <Grid x:Name="ProfileDialogOverlay" 
-              Grid.Row="1"
+        <!-- Cửa sổ tài khoản(đăng xuất, đăng nhập tài khoản khác)-->
+        <Grid x:Name="ProfileDialogOverlay"
               Visibility="{Binding IsProfileDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}"
               Panel.ZIndex="999"
-              Background="#AA000000">
+              Background="#AA000000" Grid.RowSpan="2">
             <Border Width="450" Height="Auto" 
                     Background="{DynamicResource SurfaceBrush}" 
                     CornerRadius="16" 
