@@ -13,7 +13,8 @@
         ResizeMode="CanMinimize"
         Background="{DynamicResource BackgroundBrush}"
         WindowStyle="None"
-        UseLayoutRounding="True">
+        UseLayoutRounding="True"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit">
     <!--#region Resources-->
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#007ACC"/>
@@ -111,96 +112,132 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid>
+                <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="3*" />
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    
-                    <!-- Nơi hiển thị logo trang trí , Tên phần mềm, Ô nhập tên -->
-                    <StackPanel Orientation="Vertical">
+
+                    <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse Width="10" Height="10" Fill="#FF9AD1FF" Margin="0,0,10,0" />
                             <Ellipse Width="10" Height="10" Fill="#FFFCE38A" Margin="0,0,10,0" />
                             <Ellipse Width="10" Height="10" Fill="#FF89F7FE" />
                         </StackPanel>
-                        <TextBlock Foreground="Blue" FontSize="20" FontWeight="Bold" Margin="0,0,0,0">
+                        <TextBlock Foreground="Blue" FontSize="20" FontWeight="Bold" Margin="0,5,0,0">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Text" Value="Mind Map App"></Setter>
-                                    <Style.Triggers>
-                                        <EventTrigger RoutedEvent="Window.Loaded">
-                                            <BeginStoryboard Storyboard="{StaticResource ThuanStoryBoard}"></BeginStoryboard>
-                                        </EventTrigger>
-                                    </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Tên mindmap:" VerticalAlignment="Center" Margin="0,0,0,0" FontWeight="SemiBold" />
-                            <TextBox Width="260" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" Foreground="{DynamicResource TextBrush}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,5,0,0">
+                            <TextBlock Text="Project:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                            <TextBox Width="200" Background="Transparent" BorderThickness="0,0,0,1" BorderBrush="#CCC" Foreground="{DynamicResource TextBrush}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" Margin="10,0,0,0" FontWeight="Bold"/>
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Module tìm kiếm -->
-                    <Border Grid.Column="1" Margin="0,0,0,0" Background="{DynamicResource SurfaceBrush}" CornerRadius="20">
-                        <StackPanel>
-                            <TextBlock Text="Tìm kiếm node" FontWeight="SemiBold" FontSize="16" Margin="0,10,0,0"/>
-                            <Grid Margin="0,0,0,0">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+
+                        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="20" BorderBrush="#DDD" BorderThickness="1" Height="40" Margin="0,0,15,0">
+                            <Grid Width="220">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid>
-                                    <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" TextChanged="SearchBox_TextChanged" Margin="0" Padding="12" Height="42" />
-                                    <TextBlock x:Name="Placeholder" Text="Nhập tên node cần tìm..." Foreground="#FF9AA9BC" Margin="16,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                    <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" TextChanged="SearchBox_TextChanged" 
+                             Margin="0" Padding="15,0" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0"/>
+                                    <TextBlock x:Name="Placeholder" Text="Tìm kiếm node..." Foreground="#FF9AA9BC" Margin="15,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
                                 </Grid>
-                                <Button Grid.Column="1" Content="Tìm" Command="{Binding SearchCommand}" Margin="10,0,0,0" Padding="18,10" Width="40" BorderThickness="0"/>
+                                <Button Grid.Column="1" Content="🔍" Command="{Binding SearchCommand}" Width="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Foreground="{DynamicResource AccentBrush}"/>
                             </Grid>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" ToolTip="Chế độ trình chiếu" IsChecked="{Binding IsPresentationMode}" Command="{Binding TogglePresentationCommand}" Height="40" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📺" Margin="0,0,5,0"/>
+                                    <TextBlock Text="Trình chiếu"/>
+                                </StackPanel>
+                            </ToggleButton>
+
+                            <Button Style="{StaticResource ToolbarButton}" Command="{Binding ExportImageCommand}" CommandParameter="{Binding ElementName=MindmapWorkspace}" Height="40" Margin="0,0,10,0" ToolTip="Xuất ra file ảnh PNG">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📷" Margin="0,0,5,0"/>
+                                    <TextBlock Text="Ảnh"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ToolbarButton}" Command="{Binding ExportPdfCommand}" CommandParameter="{Binding ElementName=MindmapWorkspace}" Height="40" Margin="0,0,15,0" ToolTip="Xuất ra file PDF">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📄" Margin="0,0,5,0"/>
+                                    <TextBlock Text="PDF"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Border Background="#333" CornerRadius="8" Height="40" Padding="10,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Size:" Foreground="#BBB" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+                                    <ComboBox ItemsSource="{Binding SizeOptions}" 
+                              SelectedItem="{Binding SelectedSize}" 
+                              DisplayMemberPath="Name"
+                              Style="{StaticResource SmallArrowComboBox}" 
+                              Width="100" Height="30" Background="Transparent" BorderThickness="0"/>
+                                </StackPanel>
+                            </Border>
+
                         </StackPanel>
-                    </Border>
+                    </StackPanel>
                 </Grid>
 
-                <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}" CornerRadius="22" Margin="0,0,0,0">
+                <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}" CornerRadius="16" Margin="0,0,0,0" Padding="5">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        
-                        <!-- Thanh công cụ của ứng dụng-->
-                        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddNodeCommand}" Content="Thêm Node" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddChildNodeCommand}" Content="Thêm nhánh con" MinWidth="110"/>
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding DeleteNodeCommand}" Content="Xóa node" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Click="StartConnectionButton_OnClick" Content="Kết nối" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearConnectionCommand}" Content="Hủy kết nối" MinWidth="90"/>
-                                <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Trình chiếu" IsChecked="{Binding IsPresentationMode}" Command="{Binding TogglePresentationCommand}" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Content="Phóng to" Command="{Binding ZoomInCommand}" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Content="Thu nhỏ" Command="{Binding ZoomOutCommand}" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Content="Xuất ảnh" Command="{Binding ExportImageCommand}" CommandParameter="{Binding ElementName=MindmapWorkspace}" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Content="Xuất PDF" Command="{Binding ExportPdfCommand}" CommandParameter="{Binding ElementName=MindmapWorkspace}" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Content="🌗 Theme" Command="{Binding ToggleThemeCommand}" MinWidth="90"/>
-                                <Button Style="{StaticResource ToolbarButton}" Content="Xóa tất cả" Command="{Binding ClearAllCommand}" MinWidth="90" Background="#FFEF9A9A" Foreground="#FFC62828" BorderBrush="#FFEF5350"/>
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677"/>
-                                <TextBlock Text="Kích thước:" VerticalAlignment="Center" Foreground="#555" Margin="0,0,5,0"/>
-                                <ComboBox ItemsSource="{Binding SizeOptions}" 
-                                          SelectedItem="{Binding SelectedSize}" 
-                                          DisplayMemberPath="Name"
-                                          Style="{StaticResource SmallArrowComboBox}" 
-                                          Width="160" Height="30" Background="#333"/>
+
+                        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" PanningMode="HorizontalOnly">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                                <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddNodeCommand}" Content="➕ Thêm Node" MinWidth="100" FontWeight="SemiBold"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddChildNodeCommand}" Content="🌱 Nhánh con" MinWidth="100"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding DeleteNodeCommand}" Content="❌ Xóa" MinWidth="80" Foreground="#D32F2F"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource ToolbarButton}" Click="StartConnectionButton_OnClick" Content="🔗 Nối dây" MinWidth="90"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearConnectionCommand}" Content="✂️ Hủy" MinWidth="70"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ZoomInCommand}" Content="🔍 +" MinWidth="60" ToolTip="Phóng to"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ZoomOutCommand}" Content="🔍 -" MinWidth="60" ToolTip="Thu nhỏ"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding ToggleThemeCommand}" Content="🌗 Theme" MinWidth="80" Margin="0,0,5,0"/>
+                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677" Foreground="White"/>
+                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearAllCommand}" Content="🗑️ Xóa tất cả" MinWidth="100" Background="#FFEF9A9A" Foreground="#B71C1C" BorderBrush="#FFEF5350" Margin="5,0,0,0"/>
+
                             </StackPanel>
                         </ScrollViewer>
-                        
-                        <!-- Nút đóng mở của hộp định dạng-->
-                        <ToggleButton Grid.Column="1" x:Name="BtnToggleRight" Click="BtnToggleRight_Click" IsChecked="True" Cursor="Hand" Margin="0,5,15,5" Height="35" Background="Transparent" BorderThickness="0" ToolTip="Đóng/Mở Menu Định Dạng">
+
+                        <ToggleButton Grid.Column="1" x:Name="BtnToggleRight" Click="BtnToggleRight_Click" IsChecked="True" Cursor="Hand" Margin="10,0,5,0" Height="35" Background="Transparent" BorderThickness="0" ToolTip="Đóng/Mở Menu Định Dạng">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border Background="#1AFFFFFF" CornerRadius="8" Padding="12,0" BorderBrush="#33FFFFFF" BorderThickness="1">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="Giao diện" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Định dạng" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                             <TextBlock x:Name="ArrowIcon" Text="▶" Foreground="#4DD0E1" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
@@ -219,8 +256,6 @@
                                 </ControlTemplate>
                             </ToggleButton.Template>
                         </ToggleButton>
-                        
-                        
                     </Grid>
                 </Border>
 
@@ -439,21 +474,23 @@
                                                 </Thumb.ContextMenu>
                                             </Thumb>
 
-                                                <Thumb Tag="TopLeft"     Cursor="SizeNWSE" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Left" Background="Transparent" />
-                                                <Thumb Tag="TopRight"    Cursor="SizeNESW" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Right" Background="Transparent" />
-                                                <Thumb Tag="BottomLeft"  Cursor="SizeNESW" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="Transparent" />
-                                                <Thumb Tag="BottomRight" Cursor="SizeNWSE" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Bottom" HorizontalAlignment="Right" Background="Transparent" />
+                                                <!-- 8 Thumb bọc quanh để hộ trợ thay đổi kích thước !!!-->
+                                                <Thumb Tag="TopLeft"  Style="{StaticResource HoverResizeThumbStyle}"   Cursor="SizeNWSE" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Left" Background="Transparent" />
+                                                <Thumb Tag="TopRight"  Style="{StaticResource HoverResizeThumbStyle}"  Cursor="SizeNESW" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Right" Background="Transparent" />
+                                                <Thumb Tag="BottomLeft" Style="{StaticResource HoverResizeThumbStyle}" Cursor="SizeNESW" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="Transparent" />
+                                                <Thumb Tag="BottomRight" Style="{StaticResource HoverResizeThumbStyle}" Cursor="SizeNWSE" DragDelta="Thumb_DragDelta"  Width="10" Height="10" VerticalAlignment="Bottom" HorizontalAlignment="Right" Background="Transparent" />
 
-                                                <Thumb Tag="Top"    Cursor="SizeNS" DragDelta="Thumb_DragDelta"  Height="5" VerticalAlignment="Top" Margin="10,0" Background="Transparent" />
-                                                <Thumb Tag="Bottom" Cursor="SizeNS" DragDelta="Thumb_DragDelta"  Height="5" VerticalAlignment="Bottom" Margin="10,0" Background="Transparent" />
-                                                <Thumb Tag="Left"   Cursor="SizeWE" DragDelta="Thumb_DragDelta"  Width="5" HorizontalAlignment="Left" Margin="0,10" Background="Transparent" />
-                                                <Thumb Tag="Right"  Cursor="SizeWE" DragDelta="Thumb_DragDelta"  Width="5" HorizontalAlignment="Right" Margin="0,10" Background="Transparent" />
+                                                <Thumb Tag="Top"  Style="{StaticResource HoverResizeThumbStyle}"  Cursor="SizeNS" DragDelta="Thumb_DragDelta"  Height="5" VerticalAlignment="Top" Margin="10,0" Background="Transparent" />
+                                                <Thumb Tag="Bottom" Style="{StaticResource HoverResizeThumbStyle}" Cursor="SizeNS" DragDelta="Thumb_DragDelta"  Height="5" VerticalAlignment="Bottom" Margin="10,0" Background="Transparent" />
+                                                <Thumb Tag="Left"  Style="{StaticResource HoverResizeThumbStyle}" Cursor="SizeWE" DragDelta="Thumb_DragDelta"  Width="5" HorizontalAlignment="Left" Margin="0,10" Background="Transparent" />
+                                                <Thumb Tag="Right" Style="{StaticResource HoverResizeThumbStyle}" Cursor="SizeWE" DragDelta="Thumb_DragDelta"  Width="5" HorizontalAlignment="Right" Margin="0,10" Background="Transparent" />
                                             </Grid>
                                         </DataTemplate>
                                         
                                         
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                           
                             </Grid>
                             
                         </ScrollViewer>
@@ -469,34 +506,55 @@
                                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Padding="15" Margin="0,0,0,15">
                                         <StackPanel>
                                             <TextBlock Text="HÌNH DÁNG và MÀU SẮC" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+
                                             <TextBlock Text="Kiểu dáng" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                             <ComboBox ItemsSource="{Binding ShapeOptions}" SelectedItem="{Binding SelectedNode.Shape}" Height="35" Style="{StaticResource SmallArrowComboBox}" Background="#333"/>
+
                                             <TextBlock Text="Màu nền" Foreground="{DynamicResource TextBrush}" Margin="0,15,0,8"/>
-                                            <ItemsControl ItemsSource="{Binding ColorPalette}">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Width="32" Height="32" Margin="0,0,8,8" BorderThickness="0" Cursor="Hand" Background="{Binding Converter={StaticResource ColorToBrushConverter}}" Command="{Binding DataContext.ApplyColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
-                                                            <Button.Template>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="16" BorderBrush="#555" BorderThickness="1"/>
+
+                                            <xctk:ColorPicker SelectedColor="{Binding SelectedNode.BackgroundColor, UpdateSourceTrigger=PropertyChanged}"
+                                                              DisplayColorAndName="True"
+                                                              ShowRecentColors="True"
+                                                              ShowDropDownButton="False"
+                                                              Height="40"
+                                                              Background="#333333"
+                                                              Foreground="White"
+                                                              BorderBrush="#555555">
+                                                <xctk:ColorPicker.ButtonStyle>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="{TemplateBinding Background}" 
+                                                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                                                            BorderThickness="1" 
+                                                                            CornerRadius="8" 
+                                                                            Padding="10,0">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+                                                                            <Path Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#AAAAAA" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                                        </Grid>
+                                                                    </Border>
                                                                 </ControlTemplate>
-                                                            </Button.Template>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </xctk:ColorPicker.ButtonStyle>
+                                            </xctk:ColorPicker>
                                         </StackPanel>
                                     </Border>
+
                                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Padding="15">
                                         <StackPanel>
                                             <TextBlock Text="VĂN BẢN" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+
                                             <TextBlock Text="Font chữ" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                             <ComboBox ItemsSource="{Binding FontOptions}" SelectedItem="{Binding SelectedNode.FontFamily}" Style="{StaticResource SmallArrowComboBox}" Height="35" Background="#333"/>
+
                                             <Grid Margin="0,15,0,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -508,55 +566,92 @@
                                                     <ComboBox ItemsSource="{Binding FontSizeOptions}" SelectedItem="{Binding SelectedNode.FontSize}" Style="{StaticResource SmallArrowComboBox}" Height="35" Background="#333"/>
                                                 </StackPanel>
                                             </Grid>
+
                                             <TextBlock Text="Màu chữ" Foreground="{DynamicResource TextBrush}" Margin="0,15,0,8"/>
-                                            <ItemsControl ItemsSource="{Binding TextColorPalette}">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Width="32" Height="32" Margin="0,0,8,8" BorderThickness="0" Cursor="Hand" Background="{Binding Converter={StaticResource ColorToBrushConverter}}" Command="{Binding DataContext.ApplyTextColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
-                                                            <Button.Template>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="16" BorderBrush="#555" BorderThickness="1"/>
+
+                                            <xctk:ColorPicker SelectedColor="{Binding SelectedNode.TextColor, UpdateSourceTrigger=PropertyChanged}"
+                                                              DisplayColorAndName="True"
+                                                              ShowRecentColors="True"
+                                                              ShowDropDownButton="False"
+                                                              Height="40"
+                                                              Background="#333333"
+                                                              Foreground="White"
+                                                              BorderBrush="#555555">
+                                                <xctk:ColorPicker.ButtonStyle>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="{TemplateBinding Background}" 
+                                                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                                                            BorderThickness="1" 
+                                                                            CornerRadius="8" 
+                                                                            Padding="10,0">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+                                                                            <Path Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#AAAAAA" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                                        </Grid>
+                                                                    </Border>
                                                                 </ControlTemplate>
-                                                            </Button.Template>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </xctk:ColorPicker.ButtonStyle>
+                                            </xctk:ColorPicker>
+
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-                                
+
                                 <!-- Định dạng cho Dây -->
                                 <StackPanel Visibility="{Binding SelectedConnection, Converter={StaticResource NullToVisibilityConverter}}">
                                     <Border Background="#2D2D2D" CornerRadius="12" Padding="15">
                                         <StackPanel>
                                             <TextBlock Text="THUỘC TÍNH LIÊN KẾT" FontSize="11" FontWeight="Bold" Foreground="#88FFFFFF" Margin="0,0,0,10"/>
+
                                             <TextBlock Text="Màu dây" Foreground="#DDDDDD" Margin="0,0,0,8"/>
-                                            <ItemsControl ItemsSource="{Binding ColorPalette}">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Width="32" Height="32" Margin="0,0,8,8" BorderThickness="0" Cursor="Hand" Background="{Binding Converter={StaticResource ColorToBrushConverter}}" Command="{Binding DataContext.ApplyColorCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
-                                                            <Button.Template>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="16" BorderBrush="#555" BorderThickness="1"/>
+
+                                            <xctk:ColorPicker SelectedColor="{Binding SelectedConnection.StrokeColor, UpdateSourceTrigger=PropertyChanged}"
+                                                              DisplayColorAndName="True"
+                                                              ShowRecentColors="True"
+                                                              ShowDropDownButton="False"
+                                                              Height="40"
+                                                              Background="#333333"
+                                                              Foreground="White"
+                                                              BorderBrush="#555555">
+                                                <xctk:ColorPicker.ButtonStyle>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="{TemplateBinding Background}" 
+                                                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                                                            BorderThickness="1" 
+                                                                            CornerRadius="8" 
+                                                                            Padding="10,0">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+                                                                            <Path Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="#AAAAAA" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                                        </Grid>
+                                                                    </Border>
                                                                 </ControlTemplate>
-                                                            </Button.Template>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                            <TextBlock Text="Độ dày dây" Foreground="#DDDDDD" Margin="0,10,0,4"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </xctk:ColorPicker.ButtonStyle>
+                                            </xctk:ColorPicker>
+
+                                            <TextBlock Text="Độ dày dây" Foreground="#DDDDDD" Margin="0,15,0,4"/>
                                             <Slider Minimum="1" Maximum="10" Value="{Binding SelectedConnection.Thickness}" AutoToolTipPlacement="TopLeft" Margin="0,0,0,20"/>
+
                                             <Button Content="Xóa liên kết này" Command="{Binding DeleteConnectionCommand}" Background="#333" Foreground="#FF5555" BorderThickness="0" Padding="10" Cursor="Hand">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
@@ -569,7 +664,7 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-                               
+
                                 <StackPanel HorizontalAlignment="Center" Margin="0,150,0,0" Opacity="0.5">
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
