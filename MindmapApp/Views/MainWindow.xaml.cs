@@ -1,18 +1,27 @@
 using Microsoft.Win32;
 using MindmapApp.Models;
+using MindmapApp.Services;
 using MindmapApp.ViewModels;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf;
 using System;
 using System.ComponentModel;
 using System.IO;
-using System.Linq; // Cần thiết cho FirstOrDefault
+using System.IO.Packaging;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Markup;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
-
+using System.Windows.Media.Imaging;
+using System.Windows.Xps.Packaging;
 namespace MindmapApp.Views;
+
 
 public partial class MainWindow : Window
 {
@@ -30,7 +39,6 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _viewModel = new MainViewModel(
-            App.ExportService,
             App.SearchService,
             App.AiService,
             App.MindmapStorageService,
@@ -200,36 +208,37 @@ public partial class MainWindow : Window
     private Point _lastNodeDragPoint;
     private void NodeThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
     {
+        // Kiểm tra an toàn: nếu không phải Thumb hoặc Node không cho phép kéo thì thoát
         if (sender is not Thumb thumb || thumb.Tag is not NodeViewModel node) return;
         if (!node.IsDraggable) return;
 
-        // 1. SỬA LỖI TRƯỢT KHI ZOOM:
-        // Lấy vị trí chuột mới trên Canvas
+        // 1. TÍNH TOÁN DI CHUYỂN (Hỗ trợ Zoom tốt):
+        // Lấy vị trí chuột hiện tại trên Canvas
         var currentPoint = Mouse.GetPosition(MindmapWorkspace);
 
-        // Tính khoảng cách di chuyển bằng phép trừ toạ độ thực tế
-        // Cách này loại bỏ hoàn toàn sai số do tỷ lệ Zoom
+        // Tính khoảng cách di chuyển (Delta) bằng hiệu số tọa độ chuột
         double deltaX = currentPoint.X - _lastNodeDragPoint.X;
         double deltaY = currentPoint.Y - _lastNodeDragPoint.Y;
 
+        // Tính tọa độ mới dự kiến của Node
         double newX = node.X + deltaX;
         double newY = node.Y + deltaY;
 
-        // 2. SỬA LỖI KÍCH THƯỚC ĐỘNG:
-        // Thay vì dùng MainViewModel.CanvasWidth (số tĩnh), hãy dùng _viewModel.CanvasWidth
-        // (Đây là property động thay đổi theo ComboBox mà ta đã làm ở bước trước)
-        double currentCanvasW = _viewModel.CanvasWidth;
-        double currentCanvasH = _viewModel.CanvasHeight;
+        // 2. GIỚI HẠN BIÊN (CLAMPING) THEO KÍCH THƯỚC CỐ ĐỊNH:
+        // Dùng hằng số FixedCanvasWidth/Height từ MainViewModel (8000x6000)
+        // Thay vì dùng _viewModel.CanvasWidth (động) như trước
+        double limitW = MainViewModel.FixedCanvasWidth;
+        double limitH = MainViewModel.FixedCanvasHeight;
 
-        // Giới hạn biên (Clamping) theo kích thước hiện tại
-        newX = Math.Max(0, Math.Min(newX, currentCanvasW - node.Width));
-        newY = Math.Max(0, Math.Min(newY, currentCanvasH - node.Height));
+        // Đảm bảo Node không bị kéo ra khỏi vùng vẽ (0 -> 8000)
+        newX = Math.Max(0, Math.Min(newX, limitW - node.Width));
+        newY = Math.Max(0, Math.Min(newY, limitH - node.Height));
 
-        // 3. Cập nhật
+        // 3. CẬP NHẬT VỊ TRÍ
         node.X = newX;
         node.Y = newY;
 
-        // Lưu lại vị trí để tính cho frame tiếp theo
+        // Lưu lại vị trí chuột để tính toán cho lần di chuyển tiếp theo
         _lastNodeDragPoint = currentPoint;
     }
 
@@ -520,4 +529,72 @@ public partial class MainWindow : Window
         // Ngăn không cho sự kiện này lan ra ngoài (để không bị dính vào sự kiện di chuyển node)
         e.Handled = true;
     }
+
+    #region Export 
+
+    private readonly ImageExportService _imageService = new ImageExportService();
+    private void BtnExportImage_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Nodes.Count == 0)
+        {
+            MessageBox.Show("Chưa có nội dung để xuất!", "Thông báo");
+            return;
+        }
+
+        SaveFileDialog dlg = new SaveFileDialog();
+        dlg.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg";
+        dlg.FileName = "Mindmap_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+        if (dlg.ShowDialog() == true)
+        {
+            try
+            {
+                // Gọi Service vẽ ảnh từ dữ liệu
+                _imageService.ExportImage(dlg.FileName, _viewModel.Nodes, _viewModel.Connections);
+                MessageBox.Show("Xuất ảnh thành công!", "Thông báo");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi xuất ảnh: " + ex.Message);
+            }
+        }
+    }
+    // Sự kiện nút Xuất PDF (Dùng PdfSharp)
+    private readonly PdfExportService _pdfService = new PdfExportService();
+    private void BtnExportPdf_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Nodes.Count == 0)
+        {
+            MessageBox.Show("Chưa có nội dung để xuất!", "Thông báo");
+            return;
+        }
+
+        SaveFileDialog dlg = new SaveFileDialog();
+        dlg.Filter = "PDF Document (*.pdf)|*.pdf";
+        dlg.FileName = "Mindmap_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+        if (dlg.ShowDialog() == true)
+        {
+            try
+            {
+                // Gọi Service để thực hiện toàn bộ logic vẽ
+                // Code View giờ đây không còn biết vẽ hình tròn vuông méo ra sao nữa -> Đạt chuẩn Clean Code
+                _pdfService.ExportPdf(
+                    dlg.FileName,
+                    _viewModel.Title,
+                    _viewModel.Nodes,
+                    _viewModel.Connections
+                );
+
+                MessageBox.Show("Xuất PDF Vector thành công!", "Thông báo");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi xuất PDF: " + ex.Message);
+            }
+        }
+    }
+    // Helper: Chuyển màu WPF sang PDFSharp
+   
+    #endregion
 }

@@ -21,7 +21,6 @@ namespace MindmapApp
         public static UserService UserService { get; private set; } = null!;
         public static EmailService EmailService { get; private set; } = null!;
         public static EmailSettings EmailSettings { get; private set; } = new();
-        public static MindmapExportService ExportService { get; private set; } = null!;
         public static MindmapSearchService SearchService { get; private set; } = null!;
         public static MindmapAiService AiService { get; private set; } = null!;
         public static MindmapStorageService MindmapStorageService { get; private set; } = null!;
@@ -41,7 +40,6 @@ namespace MindmapApp
             UserService = new UserService(DatabaseService, new PasswordHasher());
             EmailSettings = LoadEmailSettings();
             EmailService = new EmailService(EmailSettings);
-            ExportService = new MindmapExportService();
             SearchService = new MindmapSearchService();
             AiService = new MindmapAiService(new HttpClient());
             MindmapStorageService = new MindmapStorageService(DatabaseService);

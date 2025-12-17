@@ -164,31 +164,24 @@
                                 </StackPanel>
                             </ToggleButton>
 
-                            <Button Style="{StaticResource ToolbarButton}" Command="{Binding ExportImageCommand}" CommandParameter="{Binding ElementName=MindmapWorkspace}" Height="40" Margin="0,0,10,0" ToolTip="Xuất ra file ảnh PNG">
+                            <Button Style="{StaticResource ToolbarButton}" 
+                                    Click="BtnExportImage_Click"
+                                    Height="40" Margin="0,0,10,0" ToolTip="Xuất ra file ảnh PNG">           
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📷" Margin="0,0,5,0"/>
                                     <TextBlock Text="Ảnh"/>
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource ToolbarButton}" Command="{Binding ExportPdfCommand}" CommandParameter="{Binding ElementName=MindmapWorkspace}" Height="40" Margin="0,0,15,0" ToolTip="Xuất ra file PDF">
+                            <Button Style="{StaticResource ToolbarButton}" 
+                                    Click="BtnExportPdf_Click"
+                                    Height="40" Margin="0,0,15,0" ToolTip="Xuất ra file PDF">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📄" Margin="0,0,5,0"/>
                                     <TextBlock Text="PDF"/>
                                 </StackPanel>
                             </Button>
-
-                            <Border Background="#333" CornerRadius="8" Height="40" Padding="10,0">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Size:" Foreground="#BBB" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
-                                    <ComboBox ItemsSource="{Binding SizeOptions}" 
-                              SelectedItem="{Binding SelectedSize}" 
-                              DisplayMemberPath="Name"
-                              Style="{StaticResource SmallArrowComboBox}" 
-                              Width="100" Height="30" Background="Transparent" BorderThickness="0"/>
-                                </StackPanel>
-                            </Border>
-
+                       
                         </StackPanel>
                     </StackPanel>
                 </Grid>
@@ -342,7 +335,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
                                             <Grid>
-                                                <Path StrokeThickness="20" Stroke="Transparent" Cursor="Hand" MouseLeftButtonDown="Path_MouseLeftButtonDown">
+                                                <Path StrokeThickness="20" Stroke="White" Opacity="0" Cursor="Hand" MouseLeftButtonDown="Path_MouseLeftButtonDown">
                                                     <Path.Data>
                                                         <MultiBinding Converter="{StaticResource ConnectionToGeometryConverter}">
                                                             <Binding Path="Source.X" />
@@ -356,6 +349,7 @@
                                                         </MultiBinding>
                                                     </Path.Data>
                                                 </Path>
+
                                                 <Path x:Name="SelectionGlowPath" IsHitTestVisible="False" Stroke="#007ACC" StrokeThickness="6" Opacity="0" StrokeEndLineCap="Round" StrokeStartLineCap="Round">
                                                     <Path.Effect>
                                                         <DropShadowEffect Color="#007ACC" BlurRadius="15" ShadowDepth="0" Opacity="1"/>
@@ -373,6 +367,7 @@
                                                         </MultiBinding>
                                                     </Path.Data>
                                                 </Path>
+
                                                 <Path x:Name="VisualPath" IsHitTestVisible="False" StrokeThickness="{Binding Thickness}" Stroke="{Binding StrokeColor, Converter={StaticResource ColorToBrushConverter}}" Opacity="0.9" StrokeEndLineCap="Round" StrokeStartLineCap="Round">
                                                     <Path.Data>
                                                         <MultiBinding Converter="{StaticResource ConnectionToGeometryConverter}">
@@ -388,6 +383,7 @@
                                                     </Path.Data>
                                                 </Path>
                                             </Grid>
+
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                     <Setter TargetName="SelectionGlowPath" Property="Opacity" Value="1" />

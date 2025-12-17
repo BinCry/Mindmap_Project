@@ -16,18 +16,11 @@ using System.Windows.Threading;
 
 namespace MindmapApp.ViewModels;
 
-// Tạo class đơn giản để lưu tùy chọn kích thước
-public class CanvasSizeOption
-{
-    public string Name { get; set; } // Tên hiển thị: Nhỏ, Vừa, Lớn
-    public double Width { get; set; }
-    public double Height { get; set; }
-}
+// [ĐÃ XÓA] Class CanvasSizeOption không còn cần thiết
 
 public class MainViewModel : BaseViewModel
 {
     #region Fields
-    private readonly MindmapExportService _exportService;
     private readonly MindmapSearchService _searchService;
     private readonly MindmapAiService _aiService;
     private readonly MindmapStorageService _storageService;
@@ -53,43 +46,36 @@ public class MainViewModel : BaseViewModel
     private bool _isProfileDialogOpen;
     private string _editDisplayName = string.Empty;
 
-   
+    private string _nodeHexColor;
+    public string NodeHexColor
+    {
+        get => _nodeHexColor;
+        set => SetProperty(ref _nodeHexColor, value);
+    }
+
+    private string _connectionHexColor;
+    public string ConnectionHexColor
+    {
+        get => _connectionHexColor;
+        set => SetProperty(ref _connectionHexColor, value);
+    }
+
     public event EventHandler? RequestCenterView;
     public event EventHandler? LogoutRequested;
     #endregion
 
-    public List<CanvasSizeOption> SizeOptions { get; } = new List<CanvasSizeOption>
-    {
-        new CanvasSizeOption { Name = "Nhỏ (3000 x 2000)", Width = 3000, Height = 2000 },
-        new CanvasSizeOption { Name = "Vừa (5000 x 4000)", Width = 5000, Height = 4000 },
-        new CanvasSizeOption { Name = "Lớn (8000 x 6000)", Width = 8000, Height = 6000 }
-    };
+    // 1. THIẾT LẬP KÍCH THƯỚC CỐ ĐỊNH (Rất lớn để thoải mái vẽ)
+    public const double FixedCanvasWidth = 8000;
+    public const double FixedCanvasHeight = 6000;
 
-    //  Biến lưu lựa chọn hiện tại
-    private CanvasSizeOption _selectedSize;
-    public CanvasSizeOption SelectedSize
-    {
-        get => _selectedSize;
-        set
-        {
-            if (_selectedSize != value)
-            {
-                _selectedSize = value;
-                OnPropertyChanged(nameof(SelectedSize));
+    // Giữ property này để Binding ngoài XAML không bị lỗi, nhưng trả về số cố định
+    public double CanvasWidth => FixedCanvasWidth;
+    public double CanvasHeight => FixedCanvasHeight;
 
-                // Quan trọng: Thông báo cho UI biết là Width/Height đã thay đổi
-                OnPropertyChanged(nameof(CanvasWidth));
-                OnPropertyChanged(nameof(CanvasHeight));
-            }
-        }
-    }
+    // [ĐÃ XÓA] SizeOptions và SelectedSize
 
-    // 4. Property Width/Height trả về giá trị động theo lựa chọn
-    public double CanvasWidth => SelectedSize.Width;
-    public double CanvasHeight => SelectedSize.Height;
-    public MainViewModel(MindmapExportService exportService, MindmapSearchService searchService, MindmapAiService aiService, MindmapStorageService storageService, UserService userService, UserAccount currentUser)
+    public MainViewModel(MindmapSearchService searchService, MindmapAiService aiService, MindmapStorageService storageService, UserService userService, UserAccount currentUser)
     {
-        _exportService = exportService;
         _searchService = searchService;
         _aiService = aiService;
         _storageService = storageService;
@@ -134,8 +120,7 @@ public class MainViewModel : BaseViewModel
         _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _autoSaveTimer.Tick += async (_, _) => await AutoSaveAsync();
 
-        // Mặc định chọn kích thước Nhỏ
-        SelectedSize = SizeOptions[0];
+        // [ĐÃ XÓA] Dòng set SelectedSize mặc định
     }
 
     private void InitializeCommands()
@@ -177,51 +162,6 @@ public class MainViewModel : BaseViewModel
         ClearAllCommand = new RelayCommand(_ => ClearAllNodes(), _ => Nodes.Count > 0);
         AddChildNodeCommand = new RelayCommand(_ => AddChildNode(), _ => SelectedNode != null);
         DeleteConnectionCommand = new RelayCommand(_ => DeleteSelectedConnection());
-
-        // --- CẬP NHẬT: Export Image với UX tốt hơn (Loading, Status) ---
-        ExportImageCommand = new AsyncRelayCommand(async (param) =>
-        {
-            if (param is FrameworkElement element)
-            {
-                try
-                {
-                    IsBusy = true; // Khóa UI
-                    StatusMessage = "Đang xuất ảnh chất lượng cao...";
-                    await Task.Delay(50); // Delay nhỏ để UI kịp cập nhật StatusMessage
-
-                    await _exportService.SaveAsImageAsync(element, Title);
-                }
-                finally
-                {
-                    IsBusy = false; // Mở khóa UI
-                    StatusMessage = "Sẵn sàng";
-                }
-            }
-        }, _ => !IsBusy);
-
-        // --- CẬP NHẬT: Export PDF truyền thêm AuthorName và UX tốt hơn ---
-        ExportPdfCommand = new AsyncRelayCommand(async (param) =>
-        {
-            if (param is FrameworkElement element)
-            {
-                try
-                {
-                    IsBusy = true;
-                    StatusMessage = "Đang xuất PDF...";
-                    await Task.Delay(50);
-
-                    // Lấy tên tác giả cho Watermark
-                    string authorName = _currentUser.DisplayName ?? _currentUser.Email ?? "User";
-
-                    await _exportService.SaveAsPdfAsync(element, Title, authorName);
-                }
-                finally
-                {
-                    IsBusy = false;
-                    StatusMessage = "Sẵn sàng";
-                }
-            }
-        }, _ => !IsBusy);
 
         ToggleThemeCommand = new RelayCommand(_ =>
         {
@@ -273,6 +213,7 @@ public class MainViewModel : BaseViewModel
                 if (_selectedConnection != null)
                 {
                     _selectedConnection.IsSelected = true;
+                    ConnectionHexColor = _selectedConnection.StrokeColor.ToString();
                     SelectedNode = null;
                 }
                 CommandManager.InvalidateRequerySuggested();
@@ -292,6 +233,7 @@ public class MainViewModel : BaseViewModel
                 if (_selectedNode != null)
                 {
                     _selectedNode.IsSelected = true;
+                    NodeHexColor = _selectedNode.BackgroundColor.ToString();
                     SelectedConnection = null;
                 }
                 CommandManager.InvalidateRequerySuggested();
@@ -325,8 +267,7 @@ public class MainViewModel : BaseViewModel
     public ICommand ZoomInCommand { get; private set; }
     public ICommand ZoomOutCommand { get; private set; }
     public ICommand SearchCommand { get; private set; }
-    public ICommand ExportImageCommand { get; private set; }
-    public ICommand ExportPdfCommand { get; private set; }
+
     public ICommand GenerateByAiCommand { get; private set; }
     public ICommand AddChildNodeCommand { get; private set; }
     public ICommand ApplyColorCommand { get; private set; }
@@ -352,7 +293,6 @@ public class MainViewModel : BaseViewModel
         return $"{prefix} {i}";
     }
 
-    // SỬA: Tính toán vị trí tạo node dựa trên Canvas
     private void CreateCentralNode()
     {
         Nodes.Clear();
@@ -360,8 +300,9 @@ public class MainViewModel : BaseViewModel
         double nodeWidth = 180;
         double nodeHeight = 60;
 
-        double centerX = (CanvasWidth / 2) - (nodeWidth / 2);
-        double centerY = (CanvasHeight / 2) - (nodeHeight / 2);
+        // CẬP NHẬT: Tính tâm dựa trên kích thước cố định
+        double centerX = (FixedCanvasWidth / 2) - (nodeWidth / 2);
+        double centerY = (FixedCanvasHeight / 2) - (nodeHeight / 2);
 
         var rootNode = new NodeModel
         {
@@ -401,8 +342,9 @@ public class MainViewModel : BaseViewModel
         double childX = parentNode.X + parentNode.Width + 80;
         double childY = parentNode.Y + (childCount * 80);
 
-        childX = Math.Clamp(childX, 0, CanvasWidth - 160);
-        childY = Math.Clamp(childY, 0, CanvasHeight - 60);
+        // CẬP NHẬT: Dùng FixedCanvasWidth/Height thay vì CanvasWidth/Height
+        childX = Math.Clamp(childX, 0, FixedCanvasWidth - 160);
+        childY = Math.Clamp(childY, 0, FixedCanvasHeight - 60);
 
         var childColor = (Color)ColorConverter.ConvertFromString(_palette[Random.Shared.Next(_palette.Length)])!;
         var childNodeModel = new NodeModel
@@ -459,16 +401,18 @@ public class MainViewModel : BaseViewModel
             }
             else
             {
-                startX = CanvasWidth / 2;
-                startY = CanvasHeight / 2;
+                // CẬP NHẬT: Dùng FixedCanvasWidth/Height
+                startX = FixedCanvasWidth / 2;
+                startY = FixedCanvasHeight / 2;
             }
         }
 
         double offsetX = Random.Shared.Next(-20, 20);
         double offsetY = Random.Shared.Next(-20, 20);
 
-        double finalX = Math.Clamp(startX + offsetX, 0, CanvasWidth - 160);
-        double finalY = Math.Clamp(startY + offsetY, 0, CanvasHeight - 60);
+        // CẬP NHẬT: Dùng FixedCanvasWidth/Height
+        double finalX = Math.Clamp(startX + offsetX, 0, FixedCanvasWidth - 160);
+        double finalY = Math.Clamp(startY + offsetY, 0, FixedCanvasHeight - 60);
 
         var node = new NodeModel
         {
@@ -482,26 +426,6 @@ public class MainViewModel : BaseViewModel
         var viewModel = new NodeViewModel(node);
         Nodes.Add(viewModel);
         SelectedNode = viewModel;
-    }
-
-    // THÊM: Hàm tính toán vùng bao quanh nội dung để Export thông minh
-    public Rect GetContentBounds()
-    {
-        if (Nodes.Count == 0) return Rect.Empty;
-
-        double minX = Nodes.Min(n => n.X);
-        double minY = Nodes.Min(n => n.Y);
-        double maxX = Nodes.Max(n => n.X + n.Width);
-        double maxY = Nodes.Max(n => n.Y + n.Height);
-
-        // Thêm lề 50px
-        double padding = 50;
-        return new Rect(
-            Math.Max(0, minX - padding),
-            Math.Max(0, minY - padding),
-            (maxX - minX) + (padding * 2),
-            (maxY - minY) + (padding * 2)
-        );
     }
 
     private void OpenProfileDialog()
@@ -1027,5 +951,4 @@ public class MainViewModel : BaseViewModel
         };
     }
     #endregion
-
 }
