@@ -1,0 +1,13 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\ViewModels\MainViewModel.cs(231,18): error CS0102: The type 'MainViewModel' already contains a definition for 'CanvasBackgroundColor' [D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\MindMapApp_yeezsv4u_wpftmp.csproj]
+D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\ViewModels\MainViewModel.cs(237,19): error CS0102: The type 'MainViewModel' already contains a definition for 'CanvasGridStyle' [D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\MindMapApp_yeezsv4u_wpftmp.csproj]
+
+Build FAILED.
+
+D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\ViewModels\MainViewModel.cs(231,18): error CS0102: The type 'MainViewModel' already contains a definition for 'CanvasBackgroundColor' [D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\MindMapApp_yeezsv4u_wpftmp.csproj]
+D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\ViewModels\MainViewModel.cs(237,19): error CS0102: The type 'MainViewModel' already contains a definition for 'CanvasGridStyle' [D:\Workspace\C#\MindMap7\Mindmap_Project\MindmapApp\MindMapApp_yeezsv4u_wpftmp.csproj]
+    0 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:01.33
