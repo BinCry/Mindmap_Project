@@ -1,0 +1,11 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+D:\Workspace\C#\MindMap8\Mindmap_Project\MindmapApp\Views\TextEditorSidebar.xaml.cs(264,64): error CS0246: The type or namespace name 'KeyboardFocusChangedEventArgs' could not be found (are you missing a using directive or an assembly reference?) [D:\Workspace\C#\MindMap8\Mindmap_Project\MindmapApp\MindMapApp_y5vioa5c_wpftmp.csproj]
+
+Build FAILED.
+
+D:\Workspace\C#\MindMap8\Mindmap_Project\MindmapApp\Views\TextEditorSidebar.xaml.cs(264,64): error CS0246: The type or namespace name 'KeyboardFocusChangedEventArgs' could not be found (are you missing a using directive or an assembly reference?) [D:\Workspace\C#\MindMap8\Mindmap_Project\MindmapApp\MindMapApp_y5vioa5c_wpftmp.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:01.36
