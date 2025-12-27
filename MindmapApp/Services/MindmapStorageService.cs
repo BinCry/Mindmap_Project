@@ -25,35 +25,105 @@ public class MindmapStorageService
         _databaseService = databaseService;
     }
 
+    public async Task<List<MindmapDocument>> GetAllMapsHeaderAsync(Guid userId)
+    {
+        var result = new List<MindmapDocument>();
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = "SELECT Id, Title, UpdatedAt, Content FROM MindmapDocuments WHERE UserId = @userId ORDER BY UpdatedAt DESC";
+        command.Parameters.AddWithValue("@userId", userId.ToString());
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var id = Guid.Parse(reader.GetString(0));
+            var title = reader.IsDBNull(1) ? "Không tên" : reader.GetString(1);
+            var updatedAtStr = reader.IsDBNull(2) ? null : reader.GetString(2);
+            var content = reader.IsDBNull(3) ? "{}" : reader.GetString(3);
+
+            DateTime updatedAt = DateTime.UtcNow;
+            if (DateTime.TryParse(updatedAtStr, out var d)) updatedAt = d;
+
+            // Deserialize light content for background color if needed, or just skip content for header
+            // For now let's just create a shell
+            var doc = new MindmapDocument
+            {
+                Id = id,
+                OwnerId = userId,
+                Title = title,
+                UpdatedAt = updatedAt
+            };
+            
+            // Try to peek CanvasBackgroundColor from content if possible (optional)
+            try {
+                var stored = JsonSerializer.Deserialize<StoredDocument>(content, _jsonOptions);
+                if (stored != null) doc.CanvasBackgroundColor = FromHex(stored.CanvasBackgroundColor);
+            } catch { }
+
+            result.Add(doc);
+        }
+        return result;
+    }
+
+    public async Task<MindmapDocument?> GetMapAsync(Guid docId)
+    {
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = "SELECT Id, UserId, Title, Content, UpdatedAt FROM MindmapDocuments WHERE Id = @id";
+        command.Parameters.AddWithValue("@id", docId.ToString());
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            var id = Guid.Parse(reader.GetString(0));
+            var userId = Guid.Parse(reader.GetString(1));
+            var title = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+            var content = reader.IsDBNull(3) ? string.Empty : reader.GetString(3);
+            var updatedAtStr = reader.IsDBNull(4) ? null : reader.GetString(4);
+
+            DateTime updatedAt = DateTime.UtcNow;
+            if (DateTime.TryParse(updatedAtStr, out var d)) updatedAt = d;
+
+            var stored = JsonSerializer.Deserialize<StoredDocument>(content, _jsonOptions) ?? new StoredDocument();
+            return ToMindmapDocument(stored, id, userId, title, updatedAt);
+        }
+        return null;
+    }
+
     public async Task<MindmapDocument> LoadOrCreateAsync(Guid userId, string defaultTitle)
     {
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
 
-        // SQLite: Sử dụng LIMIT 1 thay cho TOP(1)
-        command.CommandText = "SELECT Id, Title, Content FROM MindmapDocuments WHERE UserId = @userId ORDER BY UpdatedAt DESC LIMIT 1";
+        command.CommandText = "SELECT Id, Title, Content, UpdatedAt FROM MindmapDocuments WHERE UserId = @userId ORDER BY UpdatedAt DESC LIMIT 1";
         command.Parameters.AddWithValue("@userId", userId.ToString());
 
         await using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
-            // Logic đọc dữ liệu
             var documentId = Guid.Parse(reader.GetString(0));
             var title = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
             var content = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
+            var updatedAtStr = reader.IsDBNull(3) ? null : reader.GetString(3);
 
-            // Đảm bảo các lớp StoredDocument/StoredNode/StoredConnection đã được thêm
+            DateTime updatedAt = DateTime.UtcNow;
+            if (DateTime.TryParse(updatedAtStr, out var d)) updatedAt = d;
+
             var stored = JsonSerializer.Deserialize<StoredDocument>(content, _jsonOptions) ?? new StoredDocument();
-            return ToMindmapDocument(stored, documentId, userId, title);
+            return ToMindmapDocument(stored, documentId, userId, title, updatedAt);
         }
 
-        // Logic tạo Mindmap mới nếu không có
         var document = new MindmapDocument
         {
             Id = Guid.NewGuid(),
             OwnerId = userId,
-            Title = defaultTitle
+            Title = defaultTitle,
+            UpdatedAt = DateTime.UtcNow
         };
         await SaveDocumentAsync(document);
         return document;
@@ -61,16 +131,10 @@ public class MindmapStorageService
 
     public async Task SaveDocumentAsync(MindmapDocument document)
     {
-        if (document == null)
-        {
-            throw new ArgumentNullException(nameof(document));
-        }
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (document.OwnerId == Guid.Empty) throw new InvalidOperationException("MindmapDocument cần có OwnerId để lưu trữ");
 
-        if (document.OwnerId == Guid.Empty)
-        {
-            throw new InvalidOperationException("MindmapDocument cần có OwnerId để lưu trữ");
-        }
-
+        document.UpdatedAt = DateTime.UtcNow; // Update timestamp
         var stored = FromMindmapDocument(document);
         var json = JsonSerializer.Serialize(stored, _jsonOptions);
 
@@ -78,7 +142,6 @@ public class MindmapStorageService
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
 
-        // SQLite: Sử dụng INSERT OR REPLACE cho cơ chế Upsert
         command.CommandText = @"
             INSERT OR REPLACE INTO MindmapDocuments (Id, UserId, Title, Content, UpdatedAt)
             VALUES (@id, @userId, @title, @content, @updatedAt);";
@@ -87,23 +150,23 @@ public class MindmapStorageService
         command.Parameters.AddWithValue("@userId", document.OwnerId.ToString());
         command.Parameters.AddWithValue("@title", document.Title);
         command.Parameters.AddWithValue("@content", json);
-        // Lưu DateTime dưới dạng ISO 8601 TEXT 
-        command.Parameters.AddWithValue("@updatedAt", DateTime.UtcNow.ToString("O"));
+        command.Parameters.AddWithValue("@updatedAt", document.UpdatedAt.ToString("O"));
 
         await command.ExecuteNonQueryAsync();
     }
 
-    private static MindmapDocument ToMindmapDocument(StoredDocument stored, Guid id, Guid ownerId, string title)
+    private static MindmapDocument ToMindmapDocument(StoredDocument stored, Guid id, Guid ownerId, string title, DateTime updatedAt)
     {
         var document = new MindmapDocument
         {
             Id = id,
             OwnerId = ownerId,
             Title = title,
+            UpdatedAt = updatedAt,
             CanvasBackgroundColor = FromHex(stored.CanvasBackgroundColor),
             CanvasGridStyle = stored.CanvasGridStyle ?? "Light"
         };
-
+        // ... rest of method same as before just new property assigned above
         foreach (var node in stored.Nodes)
         {
             document.Nodes.Add(new NodeModel
@@ -124,7 +187,6 @@ public class MindmapStorageService
                 FontSize = node.FontSize,
                 FontFamily = node.FontFamily,
                 Tags = new ObservableCollection<string>(node.Tags ?? new List<string>())
-
             });
         }
 
@@ -143,7 +205,6 @@ public class MindmapStorageService
                 ArrowStyle = connection.ArrowStyle ?? "None"
             });
         }
-
         return document;
     }
 
@@ -186,25 +247,16 @@ public class MindmapStorageService
                 ArrowStyle = c.ArrowStyle
             }).ToList()
         };
-
         return stored;
     }
-
+    
+    // Helper methods and inner classes preserved...
     private static string ToHex(Color color) => color.ToString();
-
     private static Color FromHex(string hex)
     {
-        if (string.IsNullOrWhiteSpace(hex))
-        {
-            return Colors.Transparent;
-        }
-
-        // Đảm bảo xử lý đúng cách, nếu ColorConverter không tìm thấy
-        if (ColorConverter.ConvertFromString(hex) is Color color)
-        {
-            return color;
-        }
-        return Colors.Transparent; // Giá trị mặc định nếu chuyển đổi thất bại
+        if (string.IsNullOrWhiteSpace(hex)) return Colors.Transparent;
+        if (ColorConverter.ConvertFromString(hex) is Color color) return color;
+        return Colors.Transparent;
     }
 
     // ✨ CÁC LỚP NỘI BỘ QUAN TRỌNG (Khắc phục lỗi biên dịch) ✨
@@ -216,7 +268,7 @@ public class MindmapStorageService
         public List<StoredNode> Nodes { get; set; } = new();
         public List<StoredConnection> Connections { get; set; } = new();
     }
-
+    
     private class StoredNode
     {
         public Guid Id { get; set; }

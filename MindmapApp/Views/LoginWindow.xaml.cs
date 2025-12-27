@@ -26,7 +26,7 @@ public partial class LoginWindow : Window
     #region Private Methods
     private void OnLoginSucceeded(object? sender, UserAccount account)
     {
-        var window = new MainWindow(account);
+        var window = new RecentMapsWindow(account);
         window.Show();
         Close();
     }

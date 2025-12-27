@@ -9,7 +9,7 @@ namespace MindmapApp.Services
         // Using List to allow removing from the bottom (oldest history) easily
         private readonly List<MindmapDocument> _undoList = new List<MindmapDocument>();
         private readonly List<MindmapDocument> _redoList = new List<MindmapDocument>();
-        private readonly int _maxHistory = 50;
+        private readonly int _maxHistory = 20;
 
         public bool CanUndo => _undoList.Count > 0;
         public bool CanRedo => _redoList.Count > 0;

@@ -71,6 +71,7 @@ namespace MindmapApp.ViewModels
         public const double FixedCanvasHeight = 6000;
         public double CanvasWidth => FixedCanvasWidth;
         public double CanvasHeight => FixedCanvasHeight;
+        public UserAccount CurrentUser => _currentUser;
         public string CurrentUserDisplayName => _currentUser?.DisplayName ?? "User";
 
         public ObservableCollection<NodeViewModel> Nodes { get; } = new();
@@ -609,9 +610,38 @@ namespace MindmapApp.ViewModels
             return d;
         }
 
-        public async Task InitializeAsync()
+        public async Task InitializeAsync(Guid? documentId = null)
         {
-            var doc = await _storageService.LoadOrCreateAsync(_currentUser.Id, $"Mindmap của {_currentUser.DisplayName ?? _currentUser.Email}");
+            MindmapDocument doc;
+            if (documentId.HasValue)
+            {
+                doc = await _storageService.GetMapAsync(documentId.Value);
+                if (doc == null)
+                {
+                    // If not found, fall back to default or empty
+                     doc = new MindmapDocument { OwnerId = _currentUser.Id, Title = "Mindmap không tên" };
+                }
+            }
+            else
+            {
+                // New Map or Default load logic (For "New Map" from Recent page, we likely passed NULL or came here with empty. 
+                // But RecentsPage passes NULL for "New Map". 
+                // If NULL, create new empty map. 
+                // BUT current logic was "LoadOrCreateAsync" (Load LAST map).
+                // If checking "History", we want "New Map" to be NEW.
+                // So if documentId is NULL, we create NEW.
+                // But wait, what if existing calls expect loading last map?
+                // MainWindow is ONLY called from RecentsPage now (once Login is updated).
+                // So NULL means NEW MAP.
+                doc = new MindmapDocument
+                {
+                    Id = Guid.NewGuid(),
+                    OwnerId = _currentUser.Id,
+                    Title = "Mindmap mới",
+                    UpdatedAt = DateTime.UtcNow
+                };
+            }
+            
             LoadMindmap(doc);
             if (Nodes.Count == 0) { CreateCentralNode(); await FlushAutoSaveAsync(); }
             else RequestCenterView?.Invoke(this, EventArgs.Empty);

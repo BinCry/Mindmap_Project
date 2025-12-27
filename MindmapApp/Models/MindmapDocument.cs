@@ -9,6 +9,7 @@ public class MindmapDocument
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OwnerId { get; set; } = Guid.Empty;
     public string Title { get; set; } = "Mindmap không tên";
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Thiết lập nền canvas toàn cục
     public Color CanvasBackgroundColor { get; set; } = Colors.Transparent;

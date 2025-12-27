@@ -26,8 +26,11 @@ namespace MindmapApp.Views
         private double _previousZoomLevel = 1.0;
         private bool _isMouseWheelZooming = false;
 
-        public MainWindow(UserAccount account)
+        private Guid? _pendingMapId;
+
+        public MainWindow(UserAccount account, Guid? mapId = null)
         {
+            _pendingMapId = mapId;
             InitializeComponent();
 
             _viewModel = new MainViewModel(
@@ -183,7 +186,7 @@ namespace MindmapApp.Views
         {
             try
             {
-                await _viewModel.InitializeAsync();
+                await _viewModel.InitializeAsync(_pendingMapId);
                 CenterOnRootNode();
             }
             catch (Exception ex)
@@ -227,6 +230,48 @@ namespace MindmapApp.Views
             storyboard.Begin(this);
             isSidebarVisible = !isSidebarVisible;
             ToggleButton.Content = isSidebarVisible ? "◀" : "▶";
+        }
+
+        private bool isHeaderVisible = true;
+        private double headerTopHeight = 60;
+        private double headerToolbarHeight = 60;
+
+        private void ToggleHeader_Click(object sender, RoutedEventArgs e)
+        {
+            if (isHeaderVisible)
+            {
+                // Capture heights
+                headerTopHeight = HeaderContentGrid.ActualHeight;
+                headerToolbarHeight = HeaderToolbarBorder.ActualHeight;
+
+                // Set explicit height to allow animation
+                HeaderContentGrid.Height = headerTopHeight;
+                HeaderToolbarBorder.Height = headerToolbarHeight;
+
+                // Animate to 0
+                DoubleAnimation animTop = new DoubleAnimation(0, new Duration(TimeSpan.FromSeconds(0.25)));
+                DoubleAnimation animToolbar = new DoubleAnimation(0, new Duration(TimeSpan.FromSeconds(0.25)));
+                
+                HeaderContentGrid.BeginAnimation(FrameworkElement.HeightProperty, animTop);
+                HeaderToolbarBorder.BeginAnimation(FrameworkElement.HeightProperty, animToolbar);
+
+                ToggleHeaderButton.Content = "▼";
+            }
+            else
+            {
+                // Expand
+                DoubleAnimation animTop = new DoubleAnimation(headerTopHeight, new Duration(TimeSpan.FromSeconds(0.25)));
+                DoubleAnimation animToolbar = new DoubleAnimation(headerToolbarHeight, new Duration(TimeSpan.FromSeconds(0.25)));
+
+                animTop.Completed += (s, args) => { HeaderContentGrid.Height = double.NaN; }; // Reset to Auto
+                animToolbar.Completed += (s, args) => { HeaderToolbarBorder.Height = double.NaN; };
+
+                HeaderContentGrid.BeginAnimation(FrameworkElement.HeightProperty, animTop);
+                HeaderToolbarBorder.BeginAnimation(FrameworkElement.HeightProperty, animToolbar);
+
+                ToggleHeaderButton.Content = "▲";
+            }
+            isHeaderVisible = !isHeaderVisible;
         }
 
         private void BtnToggleRight_Click(object sender, RoutedEventArgs e)
@@ -539,6 +584,14 @@ namespace MindmapApp.Views
                     MessageBox.Show("Lỗi xuất PDF: " + ex.Message);
                 }
             }
+        }
+
+        private void BtnRecent_Click(object sender, RoutedEventArgs e)
+        {
+             // Save current work logic if needed? Auto-save is on.
+             var recentMapsWindow = new RecentMapsWindow(_viewModel.CurrentUser);
+             recentMapsWindow.Show();
+             this.Close();
         }
 
         private void OnFormattingPanelPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

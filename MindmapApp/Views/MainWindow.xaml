@@ -140,13 +140,13 @@
 
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" x:Name="HeaderRowTop" />
+                    <RowDefinition Height="Auto" x:Name="HeaderRowToolbar" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid Margin="0,0,0,10" 
+                <Grid Margin="0,0,0,10" x:Name="HeaderContentGrid"
                       Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -206,7 +206,7 @@
                     </StackPanel>
                 </Grid>
 
-                <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}" CornerRadius="16" Margin="0,0,0,0" Padding="5"
+                <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}" CornerRadius="16" Margin="0,0,0,0" Padding="5" x:Name="HeaderToolbarBorder"
                         Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -242,8 +242,9 @@
                                     </StackPanel>
                                 </Border>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding ToggleThemeCommand}" Content="🌗 Theme" MinWidth="80" Margin="0,0,5,0"/>
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677" Foreground="White"/>
-                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearAllCommand}" Content="🗑️ Xóa tất cả" MinWidth="100" Background="#FFEF9A9A" Foreground="#B71C1C" BorderBrush="#FFEF5350" Margin="5,0,0,0"/>
+                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677" Foreground="White" Margin="0,0,5,0"/>
+                                <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearAllCommand}" Content="🗑️ Xóa tất cả" MinWidth="100" Background="#FFEF9A9A" Foreground="#B71C1C" BorderBrush="#FFEF5350" Margin="0,0,5,0"/>
+                                <Button Style="{StaticResource ToolbarButton}" Click="BtnRecent_Click" Content="Recent" MinWidth="80" Background="#FF90CAF9" Foreground="#0D47A1" BorderBrush="#FF42A5F5" ToolTip="Quay lại danh sách"/>
                             </StackPanel>
                         </ScrollViewer>
                         <ToggleButton Grid.Column="1" x:Name="BtnToggleRight" Click="BtnToggleRight_Click" IsChecked="True" Cursor="Hand" Margin="10,0,5,0" Height="35" Background="Transparent" BorderThickness="0">
@@ -269,6 +270,47 @@
                         </ToggleButton>
                     </Grid>
                 </Border>
+
+                <Grid Grid.Row="2" VerticalAlignment="Top" HorizontalAlignment="Center" Width="200" Height="40" Margin="0,-1,0,0" Panel.ZIndex="1000" Background="Transparent" x:Name="HeaderToggleArea">
+                    <Button x:Name="ToggleHeaderButton"
+                            Content="▲" 
+                            Width="120" Height="34" 
+                            VerticalAlignment="Top" HorizontalAlignment="Center"
+                            Background="{DynamicResource PrimaryBrush}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            FontSize="18"
+                            Cursor="Hand"
+                            Click="ToggleHeader_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Opacity" Value="0"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                        <Setter Property="Opacity" Value="1"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="0,0,12,12"/>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="5" ShadowDepth="2" Direction="270" Color="#40000000" Opacity="0.3"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Resources>
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="0,0,12,12">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
 
                 <Grid Grid.Row="2">
                     <Grid.Style>
