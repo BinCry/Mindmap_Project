@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
-using MindmapApp.ViewModels; // Để nhận diện Enum ConnectionStyle
+using MindmapApp.ViewModels;
 
 namespace MindmapApp.Converters
 {
@@ -11,7 +11,6 @@ namespace MindmapApp.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            // 1. Kiểm tra an toàn (10 tham số)
             if (values.Length < 10) return Geometry.Empty;
             foreach (var val in values)
             {
@@ -21,91 +20,84 @@ namespace MindmapApp.Converters
 
             try
             {
-                // 2. Lấy tọa độ
                 double sx = (double)values[0]; double sy = (double)values[1];
                 double sw = (double)values[2]; double sh = (double)values[3];
                 double tx = (double)values[4]; double ty = (double)values[5];
                 double tw = (double)values[6]; double th = (double)values[7];
 
-                // 3. Lấy ConnectionStyle (Tham số thứ 8 - index 8)
                 bool isCurved = true;
-                if (values[8] is ConnectionStyle style)
-                {
-                    isCurved = (style == ConnectionStyle.Bezier);
-                }
+                if (values[8] is ConnectionStyle style) isCurved = (style == ConnectionStyle.Bezier);
 
-                // 4. Lấy ArrowStyle (Tham số thứ 9 - index 9)
                 bool hasArrow = false;
-                if (values[9]?.ToString() == "Arrow")
-                {
-                    hasArrow = true;
-                }
+                if (values[9]?.ToString() == "Arrow") hasArrow = true;
 
-                // Nếu không có mũi tên thì trả về rỗng ngay
                 if (!hasArrow) return Geometry.Empty;
 
-                // 5. TÍNH TOÁN TỌA ĐỘ (Logic: Tâm Nguồn -> Rìa Đích)
-
-                // Tâm của các Node
+                Rect targetRect = new Rect(tx, ty, tw, th);
                 Point sourceCenter = new Point(sx + sw / 2, sy + sh / 2);
                 Point targetCenter = new Point(tx + tw / 2, ty + th / 2);
-
-                // a. Điểm bắt đầu: TÂM NODE NGUỒN (theo yêu cầu của bạn)
                 Point startPoint = sourceCenter;
 
-                // b. Điểm kết thúc: RÌA NODE ĐÍCH
-                Point rawEndPoint = GetIntersectionPoint(new Rect(tx, ty, tw, th), targetCenter, sourceCenter);
+                // 1. Tìm điểm giữa cạnh (Logic Aspect Ratio)
+                Point rawEndPoint = GetIntersectionPoint(targetRect, sourceCenter, targetCenter);
 
-                Vector direction = targetCenter - sourceCenter;
+                // 2. Tính hướng dựa trên vị trí điểm
+                Vector direction;
+                bool isSideHorizontal = Math.Abs(rawEndPoint.X - targetRect.Left) < 0.1 || Math.Abs(rawEndPoint.X - targetRect.Right) < 0.1;
+
+                if (isSideHorizontal) direction = new Vector(targetCenter.X - sourceCenter.X, 0);
+                else direction = new Vector(0, targetCenter.Y - sourceCenter.Y);
+
                 if (direction.Length > 0) direction.Normalize();
-
-                // Thụt vào 3px giống như đường dây để khớp vị trí
                 double overlap = 3.0;
-                Point endPoint = rawEndPoint + (direction * overlap);
+                Point endPoint = rawEndPoint - (direction * overlap);
 
-                // 6. Tính toán hướng mũi tên (Vector Tangent)
+                // 3. Tính Vector hướng mũi tên
                 Vector tangent;
                 if (isCurved)
                 {
-                    // Logic tính hướng cho dây cong Bezier
-                    double distanceX = Math.Abs(endPoint.X - startPoint.X);
-                    double distanceY = Math.Abs(endPoint.Y - startPoint.Y);
+                    double diffX = endPoint.X - startPoint.X;
+                    double diffY = endPoint.Y - startPoint.Y;
+                    Point c2;
 
-                    double controlDist = Math.Max(distanceX / 2, 50);
-                    if (distanceY > 100 && distanceX < 50) controlDist = distanceY / 3;
+                    // Logic đồng bộ: Nếu điểm nằm cạnh bên -> Cong ngang. Cạnh trên/dưới -> Cong dọc
+                    bool isHorizontalCurve = Math.Abs(endPoint.X - targetRect.Left) < 5.0 || Math.Abs(endPoint.X - targetRect.Right) < 5.0;
 
-                    // Tính điểm điều khiển cuối (phải khớp logic với file vẽ dây)
-                    Point control2 = new Point(endPoint.X - controlDist, endPoint.Y);
-
-                    // Hướng tiếp tuyến tại điểm cuối = EndPoint - ControlPoint2
-                    tangent = endPoint - control2;
+                    if (isHorizontalCurve)
+                    {
+                        double dist = Math.Max(Math.Abs(diffX) / 2, 50);
+                        if (Math.Abs(diffY) > 100 && Math.Abs(diffX) < 50) dist = Math.Abs(diffY) / 3;
+                        double sign = (diffX > 0) ? 1 : -1;
+                        c2 = new Point(endPoint.X - (dist * sign), endPoint.Y);
+                    }
+                    else
+                    {
+                        double dist = Math.Max(Math.Abs(diffY) / 2, 50);
+                        if (Math.Abs(diffX) > 100 && Math.Abs(diffY) < 50) dist = Math.Abs(diffX) / 3;
+                        double sign = (diffY > 0) ? 1 : -1;
+                        c2 = new Point(endPoint.X, endPoint.Y - (dist * sign));
+                    }
+                    tangent = endPoint - c2;
                 }
                 else
                 {
-                    // Logic tính hướng cho dây thẳng
                     tangent = endPoint - startPoint;
                 }
 
-                // Chuẩn hóa vector hướng
                 if (tangent.Length < 0.1) tangent = endPoint - startPoint;
                 if (tangent.Length > 0) tangent.Normalize();
 
-                // --- 7. VẼ HÌNH MŨI TÊN ---
                 StreamGeometry arrowGeo = new StreamGeometry();
                 using (StreamGeometryContext ctx = arrowGeo.Open())
                 {
-                    // Kích thước mũi tên (To rõ)
-                    double arrowLen = 18;
-                    double arrowWidth = 12;
-
-                    Vector vBack = -tangent; // Hướng ngược lại
-                    Vector vLeft = new Vector(-tangent.Y, tangent.X); // Vuông góc trái
-
-                    Point tip = endPoint; // Đỉnh mũi tên
+                    double arrowLen = 18; double arrowWidth = 12;
+                    Vector vBack = -tangent;
+                    Vector vLeft = new Vector(-tangent.Y, tangent.X);
+                    Point tip = endPoint;
                     Point pBase1 = tip + (vBack * arrowLen) + (vLeft * (arrowWidth / 2));
                     Point pBase2 = tip + (vBack * arrowLen) - (vLeft * (arrowWidth / 2));
 
-                    ctx.BeginFigure(tip, true, true); // true = filled (tô màu)
+                    ctx.BeginFigure(tip, true, true);
                     ctx.PolyLineTo(new[] { pBase1, pBase2 }, true, true);
                 }
                 arrowGeo.Freeze();
@@ -114,21 +106,31 @@ namespace MindmapApp.Converters
             catch { return Geometry.Empty; }
         }
 
-        private Point GetIntersectionPoint(Rect rect, Point center, Point otherCenter)
+        private Point GetIntersectionPoint(Rect targetRect, Point sourceCenter, Point targetCenter)
         {
-            double dx = otherCenter.X - center.X;
-            double dy = otherCenter.Y - center.Y;
+            double dx = targetCenter.X - sourceCenter.X;
+            double dy = targetCenter.Y - sourceCenter.Y;
 
-            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return center;
+            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return targetCenter;
 
-            double halfWidth = rect.Width / 2.0;
-            double halfHeight = rect.Height / 2.0;
+            // Logic Aspect Ratio (Tương tự file trên)
+            double normalizedX = Math.Abs(dx) / (targetRect.Width > 0 ? targetRect.Width : 1);
+            double normalizedY = Math.Abs(dy) / (targetRect.Height > 0 ? targetRect.Height : 1);
 
-            double tx = (dx == 0) ? double.MaxValue : halfWidth / Math.Abs(dx);
-            double ty = (dy == 0) ? double.MaxValue : halfHeight / Math.Abs(dy);
+            bool isHorizontal = normalizedX >= normalizedY;
 
-            if (tx <= ty) return new Point(center.X + (dx > 0 ? halfWidth : -halfWidth), center.Y + tx * dy);
-            else return new Point(center.X + ty * dx, center.Y + (dy > 0 ? halfHeight : -halfHeight));
+            if (isHorizontal)
+            {
+                double intersectY = targetCenter.Y;
+                double intersectX = (dx > 0) ? targetRect.Left : targetRect.Right;
+                return new Point(intersectX, intersectY);
+            }
+            else
+            {
+                double intersectX = targetCenter.X;
+                double intersectY = (dy > 0) ? targetRect.Top : targetRect.Bottom;
+                return new Point(intersectX, intersectY);
+            }
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();

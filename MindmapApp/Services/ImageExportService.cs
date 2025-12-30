@@ -15,6 +15,7 @@ namespace MindmapApp.Services
         {
             if (!nodes.Any()) return;
 
+            // 1. Tính toán kích thước ảnh
             double minX = nodes.Min(n => n.X);
             double minY = nodes.Min(n => n.Y);
             double maxX = nodes.Max(n => n.X + n.Width);
@@ -27,10 +28,11 @@ namespace MindmapApp.Services
             DrawingVisual drawingVisual = new DrawingVisual();
             using (DrawingContext dc = drawingVisual.RenderOpen())
             {
+                // Vẽ nền trắng
                 dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
                 dc.PushTransform(new TranslateTransform(padding - minX, padding - minY));
 
-                // 3. Vẽ Dây cong
+                // 2. VẼ DÂY VÀ MŨI TÊN
                 foreach (var conn in connections)
                 {
                     if (conn.Source == null || conn.Target == null) continue;
@@ -45,63 +47,114 @@ namespace MindmapApp.Services
                     Point sourceCenter = new Point(sourceRect.X + sourceRect.Width / 2, sourceRect.Y + sourceRect.Height / 2);
                     Point targetCenter = new Point(targetRect.X + targetRect.Width / 2, targetRect.Y + targetRect.Height / 2);
 
-                    Point pStart = GetIntersectionPoint(sourceRect, sourceCenter, targetCenter);
-                    Point pEnd = GetIntersectionPoint(targetRect, targetCenter, sourceCenter);
+                    Point startPoint, endPoint;
+                    bool hasArrow = (conn.ArrowStyle.ToString() == "Arrow");
 
-                    Vector direction = targetCenter - sourceCenter;
-                    if (direction.Length > 0) direction.Normalize();
+                    // --- A. XÁC ĐỊNH ĐIỂM ĐẦU / CUỐI ---
+                    if (hasArrow)
+                    {
+                        startPoint = sourceCenter;
+                        Point rawEndPoint = GetIntersectionPoint(targetRect, sourceCenter, targetCenter);
 
-                    double overlap = 3.0;
-                    Point startPoint = pStart - (direction * overlap);
-                    Point endPoint = pEnd + (direction * overlap);
+                        Vector dir;
+                        bool isSideHorizontal = Math.Abs(rawEndPoint.X - targetRect.Left) < 0.1 || Math.Abs(rawEndPoint.X - targetRect.Right) < 0.1;
 
-                    double distanceX = Math.Abs(endPoint.X - startPoint.X);
-                    double distanceY = Math.Abs(endPoint.Y - startPoint.Y);
+                        if (isSideHorizontal)
+                            dir = new Vector(targetCenter.X - sourceCenter.X, 0);
+                        else
+                            dir = new Vector(0, targetCenter.Y - sourceCenter.Y);
 
-                    double controlDist = Math.Max(distanceX / 2, 50);
-                    if (distanceY > 100 && distanceX < 50) controlDist = distanceY / 3;
+                        if (dir.Length > 0) dir.Normalize();
+                        endPoint = rawEndPoint - (dir * 3.0);
+                    }
+                    else
+                    {
+                        startPoint = sourceCenter;
+                        endPoint = targetCenter;
+                    }
 
-                    Point control1 = new Point(startPoint.X + controlDist, startPoint.Y);
-                    Point control2 = new Point(endPoint.X - controlDist, endPoint.Y);
+                    // --- B. VẼ DÂY ---
+                    bool isCurved = (conn.ConnectionStyle != ConnectionStyle.Straight);
+                    Point control2 = endPoint;
 
                     StreamGeometry geometry = new StreamGeometry();
                     using (StreamGeometryContext ctx = geometry.Open())
                     {
                         ctx.BeginFigure(startPoint, false, false);
-                        ctx.BezierTo(control1, control2, endPoint, true, true);
+
+                        if (isCurved)
+                        {
+                            double diffX = endPoint.X - startPoint.X;
+                            double diffY = endPoint.Y - startPoint.Y;
+                            Point c1, c2;
+
+                            bool isHorizontalCurve;
+                            if (hasArrow)
+                                isHorizontalCurve = Math.Abs(endPoint.X - targetRect.Left) < 5.0 || Math.Abs(endPoint.X - targetRect.Right) < 5.0;
+                            else
+                            {
+                                double normalizedX = Math.Abs(diffX) / (targetRect.Width > 0 ? targetRect.Width : 1);
+                                double normalizedY = Math.Abs(diffY) / (targetRect.Height > 0 ? targetRect.Height : 1);
+                                isHorizontalCurve = normalizedX >= normalizedY;
+                            }
+
+                            if (isHorizontalCurve)
+                            {
+                                double dist = Math.Max(Math.Abs(diffX) / 2, 50);
+                                if (Math.Abs(diffY) > 100 && Math.Abs(diffX) < 50) dist = Math.Abs(diffY) / 3;
+                                double sign = (diffX > 0) ? 1 : -1;
+
+                                c1 = new Point(startPoint.X + (dist * sign), startPoint.Y);
+                                c2 = new Point(endPoint.X - (dist * sign), endPoint.Y);
+                            }
+                            else
+                            {
+                                double dist = Math.Max(Math.Abs(diffY) / 2, 50);
+                                if (Math.Abs(diffX) > 100 && Math.Abs(diffY) < 50) dist = Math.Abs(diffX) / 3;
+                                double sign = (diffY > 0) ? 1 : -1;
+
+                                c1 = new Point(startPoint.X, startPoint.Y + (dist * sign));
+                                c2 = new Point(endPoint.X, endPoint.Y - (dist * sign));
+                            }
+
+                            control2 = c2;
+                            ctx.BezierTo(c1, c2, endPoint, true, true);
+                        }
+                        else
+                        {
+                            ctx.LineTo(endPoint, true, true);
+                            control2 = startPoint;
+                        }
                     }
                     dc.DrawGeometry(null, pen, geometry);
 
-                    // [THÊM MỚI] Logic vẽ Mũi tên cho Ảnh
-                    if (conn.ArrowStyle == "Arrow")
+                    // --- C. VẼ MŨI TÊN ---
+                    if (hasArrow)
                     {
                         Vector tangent = endPoint - control2;
-                        if (tangent.Length < 0.1) tangent = endPoint - startPoint; // Fix lỗi vector = 0
-
+                        if (tangent.Length < 0.1) tangent = endPoint - startPoint;
                         if (tangent.Length > 0) tangent.Normalize();
 
                         Vector vBack = -tangent;
                         Vector vLeft = new Vector(-tangent.Y, tangent.X);
-                        double arrowLen = 10;
-                        double arrowWidth = 4;
+                        double arrowLen = 18;
+                        double arrowWidth = 12;
 
-                        // Vẽ mũi tên tại pEnd (không overlap) để đầu mũi tên chạm đúng viền node
-                        Point tip = pEnd;
-                        Point arrowBase1 = tip + (vBack * arrowLen) + (vLeft * arrowWidth);
-                        Point arrowBase2 = tip + (vBack * arrowLen) - (vLeft * arrowWidth);
+                        Point tip = endPoint;
+                        Point p1 = tip + (vBack * arrowLen) + (vLeft * (arrowWidth / 2));
+                        Point p2 = tip + (vBack * arrowLen) - (vLeft * (arrowWidth / 2));
 
                         StreamGeometry arrowGeo = new StreamGeometry();
                         using (StreamGeometryContext ctx = arrowGeo.Open())
                         {
                             ctx.BeginFigure(tip, true, true);
-                            ctx.PolyLineTo(new[] { arrowBase1, arrowBase2 }, true, true);
+                            ctx.PolyLineTo(new[] { p1, p2 }, true, true);
                         }
-                        // Vẽ mũi tên fill cùng màu dây
                         dc.DrawGeometry(strokeBrush, null, arrowGeo);
                     }
                 }
 
-                // 4. Vẽ Nodes
+                // 3. VẼ NODES (ĐÃ SỬA LỖI CĂN CHỮ)
                 foreach (var node in nodes)
                 {
                     Brush bgBrush = new SolidColorBrush(node.BackgroundColor);
@@ -115,15 +168,11 @@ namespace MindmapApp.Services
                     else
                         dc.DrawRoundedRectangle(bgBrush, borderPen, rect, 10, 10);
 
-                    // Xử lý font
                     string fwStr = node.FontWeight?.ToString() ?? "Normal";
                     FontWeight fw = fwStr.Contains("Bold", StringComparison.OrdinalIgnoreCase) ? FontWeights.Bold : FontWeights.Normal;
-                    FontStyle fs = FontStyles.Normal; // Mặc định normal
+                    FontStyle fs = FontStyles.Normal;
 
-                    var typeface = new Typeface(new FontFamily(node.FontFamily ?? "Segoe UI"),
-                        fs,
-                        fw,
-                        FontStretches.Normal);
+                    var typeface = new Typeface(new FontFamily(node.FontFamily ?? "Segoe UI"), fs, fw, FontStretches.Normal);
 
                     FormattedText text = new FormattedText(
                         node.Title,
@@ -134,13 +183,25 @@ namespace MindmapApp.Services
                         new SolidColorBrush(node.TextColor),
                         VisualTreeHelper.GetDpi(drawingVisual).PixelsPerDip);
 
+                    // --- SỬA LỖI CĂN GIỮA Ở ĐÂY ---
+                    // 1. Căn giữa chữ trong khung text
                     text.TextAlignment = TextAlignment.Center;
-                    Point textPos = new Point(rect.X + (rect.Width - text.Width) / 2, rect.Y + (rect.Height - text.Height) / 2);
 
-                    dc.DrawText(text, new Point(rect.X + rect.Width / 2, rect.Y + (rect.Height - text.Height) / 2));
+                    // 2. Đặt khung text rộng bằng chiều rộng Node (trừ padding an toàn 10px)
+                    text.MaxTextWidth = Math.Max(1, node.Width - 10);
+                    text.MaxTextHeight = Math.Max(1, node.Height - 10);
+
+                    // 3. Tính tọa độ vẽ: 
+                    // X: Bắt đầu từ mép trái + 5px (để cân bằng với việc trừ 10px chiều rộng)
+                    // Y: Vẫn tính thủ công để căn giữa theo chiều dọc
+                    double drawX = rect.X + 5;
+                    double drawY = rect.Y + (rect.Height - text.Height) / 2;
+
+                    dc.DrawText(text, new Point(drawX, drawY));
                 }
             }
 
+            // Xuất file
             RenderTargetBitmap rtb = new RenderTargetBitmap((int)width, (int)height, 96, 96, PixelFormats.Pbgra32);
             rtb.Render(drawingVisual);
 
@@ -155,21 +216,30 @@ namespace MindmapApp.Services
             }
         }
 
-        private Point GetIntersectionPoint(Rect rect, Point center, Point otherCenter)
+        private Point GetIntersectionPoint(Rect targetRect, Point sourceCenter, Point targetCenter)
         {
-            double dx = otherCenter.X - center.X;
-            double dy = otherCenter.Y - center.Y;
+            double dx = targetCenter.X - sourceCenter.X;
+            double dy = targetCenter.Y - sourceCenter.Y;
 
-            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return center;
+            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return targetCenter;
 
-            double halfWidth = rect.Width / 2.0;
-            double halfHeight = rect.Height / 2.0;
+            double normalizedX = Math.Abs(dx) / (targetRect.Width > 0 ? targetRect.Width : 1);
+            double normalizedY = Math.Abs(dy) / (targetRect.Height > 0 ? targetRect.Height : 1);
 
-            double tx = (dx == 0) ? double.MaxValue : halfWidth / Math.Abs(dx);
-            double ty = (dy == 0) ? double.MaxValue : halfHeight / Math.Abs(dy);
+            bool isHorizontal = normalizedX >= normalizedY;
 
-            if (tx <= ty) return new Point(center.X + (dx > 0 ? halfWidth : -halfWidth), center.Y + tx * dy);
-            else return new Point(center.X + ty * dx, center.Y + (dy > 0 ? halfHeight : -halfHeight));
+            if (isHorizontal)
+            {
+                double intersectY = targetCenter.Y;
+                double intersectX = (dx > 0) ? targetRect.Left : targetRect.Right;
+                return new Point(intersectX, intersectY);
+            }
+            else
+            {
+                double intersectX = targetCenter.X;
+                double intersectY = (dy > 0) ? targetRect.Top : targetRect.Bottom;
+                return new Point(intersectX, intersectY);
+            }
         }
     }
 }

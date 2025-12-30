@@ -259,6 +259,51 @@ public class MindmapStorageService
         return Colors.Transparent;
     }
 
+    // 1. Xóa một Mindmap theo ID
+    public async Task DeleteMapAsync(Guid mapId)
+    {
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = "DELETE FROM MindmapDocuments WHERE Id = @id";
+        command.Parameters.AddWithValue("@id", mapId.ToString());
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    // 2. Đếm số lượng Map của User
+    public async Task<int> GetMapCountAsync(Guid userId)
+    {
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = "SELECT COUNT(*) FROM MindmapDocuments WHERE UserId = @userId";
+        command.Parameters.AddWithValue("@userId", userId.ToString());
+
+        var result = await command.ExecuteScalarAsync();
+        return result != null ? Convert.ToInt32(result) : 0;
+    }
+
+    // 3. Lấy ID của Map cũ nhất (để gợi ý xóa khi đầy)
+    public async Task<Guid?> GetOldestMapIdAsync(Guid userId)
+    {
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+
+        // Lấy 1 dòng có UpdatedAt bé nhất (cũ nhất)
+        command.CommandText = "SELECT Id FROM MindmapDocuments WHERE UserId = @userId ORDER BY UpdatedAt ASC LIMIT 1";
+        command.Parameters.AddWithValue("@userId", userId.ToString());
+
+        var result = await command.ExecuteScalarAsync();
+        if (result != null && Guid.TryParse(result.ToString(), out Guid id))
+        {
+            return id;
+        }
+        return null;
+    }
     // ✨ CÁC LỚP NỘI BỘ QUAN TRỌNG (Khắc phục lỗi biên dịch) ✨
     private class StoredDocument
     {

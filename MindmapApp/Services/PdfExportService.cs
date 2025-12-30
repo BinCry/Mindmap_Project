@@ -20,7 +20,7 @@ namespace MindmapApp.Services
                 document.Info.Title = title;
                 document.Info.Author = author;
 
-                // Cấu hình bảo mật (Giữ nguyên)
+                // Cấu hình bảo mật
                 if (!string.IsNullOrEmpty(password))
                 {
                     document.Version = 14;
@@ -41,7 +41,7 @@ namespace MindmapApp.Services
                     return;
                 }
 
-                // 2. Tính toán biên
+                // 2. Tính toán biên và trang
                 double minX = nodes.Min(n => n.X);
                 double minY = nodes.Min(n => n.Y);
                 double maxX = nodes.Max(n => n.X + n.Width);
@@ -58,14 +58,13 @@ namespace MindmapApp.Services
                 XGraphics gfx = XGraphics.FromPdfPage(page);
                 gfx.TranslateTransform(padding - minX, padding - minY);
 
-                // 3. Vẽ Dây và Mũi tên
+                // 3. VẼ DÂY VÀ MŨI TÊN (Logic mới: Aspect Ratio & 4 Hướng)
                 foreach (var conn in connections)
                 {
                     if (conn.Source == null || conn.Target == null) continue;
 
                     XColor strokeColor = XColor.FromArgb(conn.StrokeColor.A, conn.StrokeColor.R, conn.StrokeColor.G, conn.StrokeColor.B);
                     XPen pen = new XPen(strokeColor, conn.Thickness);
-
                     if (conn.LineStyle == "Dashed") pen.DashStyle = XDashStyle.Dash;
 
                     Rect sourceRect = new Rect(conn.Source.X, conn.Source.Y, conn.Source.Width, conn.Source.Height);
@@ -74,50 +73,104 @@ namespace MindmapApp.Services
                     Point sourceCenter = new Point(sourceRect.X + sourceRect.Width / 2, sourceRect.Y + sourceRect.Height / 2);
                     Point targetCenter = new Point(targetRect.X + targetRect.Width / 2, targetRect.Y + targetRect.Height / 2);
 
-                    Point pStart = GetIntersectionPoint(sourceRect, sourceCenter, targetCenter); // Điểm mép thực tế
-                    Point pEnd = GetIntersectionPoint(targetRect, targetCenter, sourceCenter);   // Điểm mép thực tế
+                    Point startPoint, endPoint;
+                    bool hasArrow = (conn.ArrowStyle.ToString() == "Arrow");
 
-                    Vector direction = targetCenter - sourceCenter;
-                    if (direction.Length > 0) direction.Normalize();
-
-                    double overlap = 3.0;
-                    Point startPoint = pStart - (direction * overlap);
-                    Point endPoint = pEnd + (direction * overlap);
-
-                    double distanceX = Math.Abs(endPoint.X - startPoint.X);
-                    double distanceY = Math.Abs(endPoint.Y - startPoint.Y);
-
-                    double controlDist = Math.Max(distanceX / 2, 50);
-                    if (distanceY > 100 && distanceX < 50) controlDist = distanceY / 3;
-
-                    Point control1 = new Point(startPoint.X + controlDist, startPoint.Y);
-                    Point control2 = new Point(endPoint.X - controlDist, endPoint.Y);
-
-                    // Vẽ đường dây cong
-                    gfx.DrawBezier(pen,
-                        new XPoint(startPoint.X, startPoint.Y),
-                        new XPoint(control1.X, control1.Y),
-                        new XPoint(control2.X, control2.Y),
-                        new XPoint(endPoint.X, endPoint.Y));
-
-                    // [SỬA LỖI] Vẽ mũi tên
-                    if (conn.ArrowStyle == "Arrow")
+                    // --- A. XÁC ĐỊNH ĐIỂM ĐẦU / CUỐI ---
+                    if (hasArrow)
                     {
-                        // Tính vector tiếp tuyến tại điểm cuối
-                        Vector tangent = endPoint - control2;
+                        startPoint = sourceCenter;
 
-                        // Fix lỗi: Nếu vector quá nhỏ (do thẳng hàng hoặc quá gần), dùng vector nối 2 điểm đầu cuối
-                        if (tangent.Length < 0.1)
+                        // 1. Tìm điểm cắt dựa trên Tỷ lệ khung hình
+                        Point rawEndPoint = GetIntersectionPoint(targetRect, sourceCenter, targetCenter);
+
+                        // 2. Tính vector hướng dựa trên vị trí thực tế
+                        Vector dir;
+                        bool isSideHorizontal = Math.Abs(rawEndPoint.X - targetRect.Left) < 0.1 || Math.Abs(rawEndPoint.X - targetRect.Right) < 0.1;
+
+                        if (isSideHorizontal)
+                            dir = new Vector(targetCenter.X - sourceCenter.X, 0); // Ngang
+                        else
+                            dir = new Vector(0, targetCenter.Y - sourceCenter.Y); // Dọc
+
+                        if (dir.Length > 0) dir.Normalize();
+
+                        // 3. Thụt vào 3px
+                        endPoint = rawEndPoint - (dir * 3.0);
+                    }
+                    else
+                    {
+                        startPoint = sourceCenter;
+                        endPoint = targetCenter;
+                    }
+
+                    // --- B. VẼ DÂY (BEZIER THÔNG MINH) ---
+                    bool isCurved = (conn.ConnectionStyle != ConnectionStyle.Straight);
+                    Point control2 = endPoint;
+
+                    if (isCurved)
+                    {
+                        double diffX = endPoint.X - startPoint.X;
+                        double diffY = endPoint.Y - startPoint.Y;
+                        Point c1, c2;
+
+                        bool isHorizontalCurve;
+                        if (hasArrow)
                         {
-                            tangent = endPoint - startPoint;
+                            // Có mũi tên: dựa vào cạnh đích
+                            isHorizontalCurve = Math.Abs(endPoint.X - targetRect.Left) < 5.0 || Math.Abs(endPoint.X - targetRect.Right) < 5.0;
+                        }
+                        else
+                        {
+                            // Nối tâm: dựa vào tỷ lệ khung hình
+                            double normalizedX = Math.Abs(diffX) / (targetRect.Width > 0 ? targetRect.Width : 1);
+                            double normalizedY = Math.Abs(diffY) / (targetRect.Height > 0 ? targetRect.Height : 1);
+                            isHorizontalCurve = normalizedX >= normalizedY;
                         }
 
-                        // Vẽ mũi tên tại pEnd (điểm nằm trên biên Node) để không bị che khuất
-                        DrawArrow(gfx, pen.Color, new XPoint(pEnd.X, pEnd.Y), tangent);
+                        if (isHorizontalCurve)
+                        {
+                            double dist = Math.Max(Math.Abs(diffX) / 2, 50);
+                            if (Math.Abs(diffY) > 100 && Math.Abs(diffX) < 50) dist = Math.Abs(diffY) / 3;
+                            double sign = (diffX > 0) ? 1 : -1;
+
+                            c1 = new Point(startPoint.X + (dist * sign), startPoint.Y);
+                            c2 = new Point(endPoint.X - (dist * sign), endPoint.Y);
+                        }
+                        else
+                        {
+                            double dist = Math.Max(Math.Abs(diffY) / 2, 50);
+                            if (Math.Abs(diffX) > 100 && Math.Abs(diffY) < 50) dist = Math.Abs(diffX) / 3;
+                            double sign = (diffY > 0) ? 1 : -1;
+
+                            c1 = new Point(startPoint.X, startPoint.Y + (dist * sign));
+                            c2 = new Point(endPoint.X, endPoint.Y - (dist * sign));
+                        }
+
+                        control2 = c2;
+                        gfx.DrawBezier(pen,
+                            new XPoint(startPoint.X, startPoint.Y),
+                            new XPoint(c1.X, c1.Y),
+                            new XPoint(c2.X, c2.Y),
+                            new XPoint(endPoint.X, endPoint.Y));
+                    }
+                    else
+                    {
+                        gfx.DrawLine(pen, new XPoint(startPoint.X, startPoint.Y), new XPoint(endPoint.X, endPoint.Y));
+                        control2 = startPoint;
+                    }
+
+                    // --- C. VẼ MŨI TÊN ---
+                    if (hasArrow)
+                    {
+                        Vector tangent = endPoint - control2;
+                        if (tangent.Length < 0.1) tangent = endPoint - startPoint;
+
+                        DrawArrow(gfx, strokeColor, new XPoint(endPoint.X, endPoint.Y), tangent);
                     }
                 }
 
-                // 4. Vẽ Nodes
+                // 4. VẼ NODES
                 foreach (var node in nodes)
                 {
                     var model = node.ToModel();
@@ -151,7 +204,6 @@ namespace MindmapApp.Services
                 if (showWatermark)
                 {
                     gfx.TranslateTransform(-(padding - minX), -(padding - minY));
-
                     string watermarkText = $"Created by {author}";
                     XFont watermarkFont = new XFont("Arial", 10, XFontStyleEx.Italic);
                     XBrush watermarkBrush = new XSolidBrush(XColor.FromArgb(128, 100, 100, 100));
@@ -172,20 +224,31 @@ namespace MindmapApp.Services
             }
         }
 
-        private Point GetIntersectionPoint(Rect rect, Point center, Point otherCenter)
+        // --- HÀM TÍNH GIAO ĐIỂM (ASPECT RATIO LOGIC) ---
+        private Point GetIntersectionPoint(Rect targetRect, Point sourceCenter, Point targetCenter)
         {
-            double dx = otherCenter.X - center.X;
-            double dy = otherCenter.Y - center.Y;
-            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return center;
+            double dx = targetCenter.X - sourceCenter.X;
+            double dy = targetCenter.Y - sourceCenter.Y;
 
-            double halfWidth = rect.Width / 2.0;
-            double halfHeight = rect.Height / 2.0;
+            if (Math.Abs(dx) < 1 && Math.Abs(dy) < 1) return targetCenter;
 
-            double tx = (dx == 0) ? double.MaxValue : halfWidth / Math.Abs(dx);
-            double ty = (dy == 0) ? double.MaxValue : halfHeight / Math.Abs(dy);
+            double normalizedX = Math.Abs(dx) / (targetRect.Width > 0 ? targetRect.Width : 1);
+            double normalizedY = Math.Abs(dy) / (targetRect.Height > 0 ? targetRect.Height : 1);
 
-            if (tx <= ty) return new Point(center.X + (dx > 0 ? halfWidth : -halfWidth), center.Y + tx * dy);
-            else return new Point(center.X + ty * dx, center.Y + (dy > 0 ? halfHeight : -halfHeight));
+            bool isHorizontal = normalizedX >= normalizedY;
+
+            if (isHorizontal)
+            {
+                double intersectY = targetCenter.Y;
+                double intersectX = (dx > 0) ? targetRect.Left : targetRect.Right;
+                return new Point(intersectX, intersectY);
+            }
+            else
+            {
+                double intersectX = targetCenter.X;
+                double intersectY = (dy > 0) ? targetRect.Top : targetRect.Bottom;
+                return new Point(intersectX, intersectY);
+            }
         }
 
         private void DrawArrow(XGraphics gfx, XColor color, XPoint tip, Vector direction)
@@ -193,10 +256,12 @@ namespace MindmapApp.Services
             if (direction.Length > 0) direction.Normalize();
             Vector vLeft = new Vector(-direction.Y, direction.X);
             Vector vBack = -direction;
-            double arrowLen = 10;
-            double arrowWidth = 4;
-            XPoint p1 = new XPoint(tip.X + vBack.X * arrowLen + vLeft.X * arrowWidth, tip.Y + vBack.Y * arrowLen + vLeft.Y * arrowWidth);
-            XPoint p2 = new XPoint(tip.X + vBack.X * arrowLen - vLeft.X * arrowWidth, tip.Y + vBack.Y * arrowLen - vLeft.Y * arrowWidth);
+            double arrowLen = 18;
+            double arrowWidth = 12;
+
+            XPoint p1 = new XPoint(tip.X + vBack.X * arrowLen + vLeft.X * (arrowWidth / 2), tip.Y + vBack.Y * arrowLen + vLeft.Y * (arrowWidth / 2));
+            XPoint p2 = new XPoint(tip.X + vBack.X * arrowLen - vLeft.X * (arrowWidth / 2), tip.Y + vBack.Y * arrowLen - vLeft.Y * (arrowWidth / 2));
+
             XBrush brush = new XSolidBrush(color);
             gfx.DrawPolygon(XPens.Transparent, brush, new XPoint[] { tip, p1, p2 }, XFillMode.Winding);
         }

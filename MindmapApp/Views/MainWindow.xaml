@@ -326,24 +326,22 @@
                     </Grid.Style>
 
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="LeftColumn" Width="Auto" MaxWidth="600"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition x:Name="LeftColumn" Width="350"/>
+
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition x:Name="RightColumn" Width="Auto"/>
+
+                        <ColumnDefinition x:Name="RightColumn" Width="320"/>
                     </Grid.ColumnDefinitions>
 
                     <views:TextEditorSidebar Grid.Column="0" Width="350"
-                                             Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"/>
+                        Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"/>
 
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" ShowsPreview="True"
-                                  Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"/>
-
-                    <Button x:Name="ToggleButton" Grid.Column="2" Content="◀" 
+                    <Button x:Name="ToggleButton" Grid.Column="1" Content="◀" 
                             Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
-                            Width="34" Height="120" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-16,0,0,0" Padding="0" Background="{DynamicResource PrimaryBrush}" Foreground="White" BorderThickness="0" FontSize="18" Click="ToggleSidebar_Click" Panel.ZIndex="5"/>
+                            Width="34" Height="120" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-16,0,0,0" 
+                            Padding="0" Background="{DynamicResource PrimaryBrush}" Foreground="White" BorderThickness="0" FontSize="18" Click="ToggleSidebar_Click" Panel.ZIndex="5"/>
 
-                    <Border Grid.Column="2" Background="{DynamicResource BackgroundBrush}" Padding="0" ClipToBounds="True">
+                    <Border Grid.Column="1" Background="{DynamicResource BackgroundBrush}" Padding="0" ClipToBounds="True">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="26"/>
@@ -672,10 +670,7 @@
                         </ScrollViewer>
                     </Border>
 
-                    <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" ShowsPreview="True"
-                                  Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"/>
-
-                    <Border Grid.Column="4" Width="320" Background="{DynamicResource SurfaceBrush}" CornerRadius="26,0,0,26" Padding="20" PreviewMouseLeftButtonDown="OnFormattingPanelPreviewMouseLeftButtonDown"
+                    <Border Grid.Column="2" Width="320" Background="{DynamicResource SurfaceBrush}" CornerRadius="26,0,0,26" Padding="20" PreviewMouseLeftButtonDown="OnFormattingPanelPreviewMouseLeftButtonDown"
                             Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>

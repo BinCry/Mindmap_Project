@@ -58,6 +58,35 @@ namespace MindmapApp.ViewModels
         }
 
         [RelayCommand]
+        private async Task DeleteMap(MindmapDocument map)
+        {
+            if (map == null || map.Id == Guid.Empty) return; // Không cho xóa nút "New Map"
+
+            // Hỏi xác nhận trước khi xóa
+            var result = MessageBox.Show(
+                $"Bạn có chắc chắn muốn xóa vĩnh viễn mindmap:\n'{map.Title}' không?",
+                "Xác nhận xóa",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // 1. Gọi Service để xóa trong Database
+                    await _storageService.DeleteMapAsync(map.Id);
+
+                    // 2. Xóa khỏi danh sách hiển thị trên màn hình
+                    RecentMaps.Remove(map);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi khi xóa: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        [RelayCommand]
         private void OpenNewMap()
         {
             var mainWindow = new MainWindow(_currentUser, null); // Pass null for new map

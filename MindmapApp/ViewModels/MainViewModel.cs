@@ -599,7 +599,70 @@ namespace MindmapApp.ViewModels
 
         public async Task FlushAutoSaveAsync() { if (_isLoading) return; _autoSaveTimer.Stop(); await SaveMindmapAsync(); }
         private async Task AutoSaveAsync() { _autoSaveTimer.Stop(); await SaveMindmapAsync(); }
-        private async Task SaveMindmapAsync() { if (_isSaving || _isLoading) return; try { _isSaving = true; var doc = BuildDocumentSnapshot(); await _storageService.SaveDocumentAsync(doc); } catch (Exception ex) { StatusMessage = ex.Message; } finally { _isSaving = false; } }
+        private async Task SaveMindmapAsync()
+        {
+            if (_isSaving || _isLoading) return;
+
+            try
+            {
+                _isSaving = true;
+                var doc = BuildDocumentSnapshot();
+
+                // 1. Kiểm tra xem Map này đã có trong Database chưa?
+                var existingMap = await _storageService.GetMapAsync(doc.Id);
+                bool isNewMap = (existingMap == null);
+
+                // 2. Nếu là Map Mới -> Kiểm tra giới hạn số lượng
+                if (isNewMap)
+                {
+                    int count = await _storageService.GetMapCountAsync(_currentUser.Id);
+
+                    if (count >= 5)
+                    {
+                        // Tạm dừng AutoSave để không bị hiện popup liên tục
+                        _autoSaveTimer.Stop();
+
+                        var result = MessageBox.Show(
+                            "Bạn đã đạt giới hạn lưu trữ 5 Mindmap.\n\n" +
+                            "Bạn có muốn XÓA Mindmap cũ nhất để lưu bản đồ mới này không?",
+                            "Cảnh báo dung lượng",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            // Tìm và xóa map cũ nhất
+                            var oldestId = await _storageService.GetOldestMapIdAsync(_currentUser.Id);
+                            if (oldestId != null)
+                            {
+                                await _storageService.DeleteMapAsync(oldestId.Value);
+                            }
+
+                            // Bật lại AutoSave sau khi xử lý xong
+                            _autoSaveTimer.Start();
+                        }
+                        else
+                        {
+                            // Người dùng chọn No -> Hủy lưu
+                            // (Map này sẽ chỉ nằm trên RAM, không xuống DB)
+                            return;
+                        }
+                    }
+                }
+
+                // 3. Tiến hành lưu xuống DB
+                await _storageService.SaveDocumentAsync(doc);
+                // StatusMessage = "Đã lưu"; // (Bật dòng này nếu muốn hiện chữ Đã lưu)
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = "Lỗi lưu: " + ex.Message;
+            }
+            finally
+            {
+                _isSaving = false;
+            }
+        }
         private void QueueAutoSave() { if (_isLoading) return; _autoSaveTimer.Stop(); _autoSaveTimer.Start(); }
 
         private MindmapDocument BuildDocumentSnapshot()
