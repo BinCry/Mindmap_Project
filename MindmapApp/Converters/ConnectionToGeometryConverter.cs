@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
-using MindmapApp.ViewModels; // Để nhận diện ConnectionStyle
+using MindmapApp.ViewModels;
 
 namespace MindmapApp.Converters
 {
@@ -11,9 +11,8 @@ namespace MindmapApp.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            // Kiểm tra an toàn (Cần ít nhất 8 tham số tọa độ)
+            // Kiểm tra an toàn
             if (values.Length < 8) return Geometry.Empty;
-
             foreach (var val in values)
             {
                 if (val == DependencyProperty.UnsetValue || val == null) return Geometry.Empty;
@@ -22,29 +21,27 @@ namespace MindmapApp.Converters
 
             try
             {
-                // 1. Lấy tọa độ (Giữ nguyên)
+                // 1. Lấy tọa độ
                 double sx = (double)values[0]; double sy = (double)values[1];
                 double sw = (double)values[2]; double sh = (double)values[3];
 
                 double tx = (double)values[4]; double ty = (double)values[5];
                 double tw = (double)values[6]; double th = (double)values[7];
 
-                // 2. Lấy ConnectionStyle (Tham số thứ 9 - Giữ nguyên logic của bạn)
+                // 2. Lấy Style Dây (Cong/Thẳng)
                 bool isCurved = true;
                 if (values.Length > 8 && values[8] is ConnectionStyle style)
                 {
                     isCurved = (style == ConnectionStyle.Bezier);
                 }
 
-                // 3. --- THÊM MỚI: Lấy ArrowStyle (Tham số thứ 10) ---
+                // 3. Lấy Style Mũi tên
                 bool hasArrow = false;
                 if (values.Length > 9)
                 {
-                    // Kiểm tra chuỗi, nếu là "Arrow" thì true, "None" thì false
-                    string arrowStyle = values[9]?.ToString();
-                    hasArrow = (arrowStyle == "Arrow");
+                    string arrowString = values[9]?.ToString();
+                    hasArrow = (arrowString == "Arrow");
                 }
-                // ----------------------------------------------------
 
                 if (sw <= 0 || sh <= 0 || tw <= 0 || th <= 0) return Geometry.Empty;
 
@@ -53,33 +50,37 @@ namespace MindmapApp.Converters
 
                 Point startPoint, endPoint;
 
-                // 4. --- LOGIC QUYẾT ĐỊNH ĐIỂM ĐẦU/CUỐI ---
+                // --- LOGIC ĐIỀU CHỈNH ĐIỂM ĐẦU/CUỐI ---
                 if (hasArrow)
                 {
-                    // CÓ MŨI TÊN: Dùng thuật toán Intersection cũ của bạn để dừng ở viền
-                    Point rawStartPoint = GetIntersectionPoint(new Rect(sx, sy, sw, sh), sourceCenter, targetCenter);
+                    // TRƯỜNG HỢP CÓ MŨI TÊN:
+                    // 1. Điểm đầu: Xuất phát từ TÂM Node nguồn (để dây chìm dưới Node nguồn cho đẹp)
+                    startPoint = sourceCenter;
+
+                    // 2. Điểm cuối: Dừng lại ở RÌA Node đích (để mũi tên không bị Node đích che)
                     Point rawEndPoint = GetIntersectionPoint(new Rect(tx, ty, tw, th), targetCenter, sourceCenter);
 
                     Vector direction = targetCenter - sourceCenter;
                     if (direction.Length > 0) direction.Normalize();
 
-                    double overlap = 3.0; // Giữ nguyên overlap
-                    startPoint = rawStartPoint - (direction * overlap);
+                    double overlap = 3.0; // Dịch vào trong 3px để dây nối khít với mũi tên
                     endPoint = rawEndPoint + (direction * overlap);
                 }
                 else
                 {
-                    // KHÔNG MŨI TÊN: Đi thẳng vào tâm Node
+                    // TRƯỜNG HỢP KHÔNG MŨI TÊN:
+                    // Đi từ Tâm đến Tâm (dây chìm dưới cả 2 Node)
                     startPoint = sourceCenter;
                     endPoint = targetCenter;
                 }
-                // ------------------------------------------
+                // ----------------------------------------
 
                 // 5. Vẽ hình (Giữ nguyên logic cũ)
                 StreamGeometry geometry = new StreamGeometry();
                 using (StreamGeometryContext ctx = geometry.Open())
                 {
                     ctx.BeginFigure(startPoint, false, false);
+
                     if (isCurved)
                     {
                         double distanceX = Math.Abs(endPoint.X - startPoint.X);
