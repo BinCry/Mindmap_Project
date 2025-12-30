@@ -185,19 +185,19 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Style="{StaticResource ToolbarButton}" ToolTip="Bắt đầu trình chiếu" 
                                     Command="{Binding StartPresentationCommand}" 
-                                    Height="40" Margin="0,0,10,0">
+                                    Height="40" Width="120" Background="#FF64B5F6" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📺" Margin="0,0,5,0"/>
                                     <TextBlock Text="Trình chiếu"/>
                                 </StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolbarButton}" Click="BtnExportImage_Click" Height="40" Margin="0,0,10,0" ToolTip="Xuất ảnh">
+                            <Button Style="{StaticResource ToolbarButton}" Click="BtnExportImage_Click" Height="40" Width="70" Background="#FF64B5F6" Margin="0,0,10,0" ToolTip="Xuất ảnh">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📷" Margin="0,0,5,0"/>
                                     <TextBlock Text="Ảnh"/>
                                 </StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolbarButton}" Click="BtnExportPdf_Click" Height="40" Margin="0,0,15,0" ToolTip="Xuất PDF">
+                            <Button Style="{StaticResource ToolbarButton}" Click="BtnExportPdf_Click" Height="40" Width="70" Margin="0,0,15,0" Background="#FF64B5F6" ToolTip="Xuất PDF">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📄" Margin="0,0,5,0"/>
                                     <TextBlock Text="PDF"/>
@@ -219,15 +219,15 @@
 
                                 <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding UndoCommand}" Content="↩" MinWidth="50" ToolTip="Hoàn tác (Undo)"/>
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding RedoCommand}" Content="↪" MinWidth="50" ToolTip="Làm lại (Redo)"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding UndoCommand}" Content="↩" MinWidth="50" ToolTip="Hoàn tác (Undo)" Background="#FF8A8178"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding RedoCommand}" Content="↪" MinWidth="50" ToolTip="Làm lại (Redo)" Background="#FF8A8178"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
+                                <Border Background="#10000000" CornerRadius="6" Padding="5" Margin="0,0,5,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddNodeCommand}" Content="➕ Thêm Node" MinWidth="100" FontWeight="SemiBold"/>
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddChildNodeCommand}" Content="🌱 Nhánh con" MinWidth="100"/>
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding DeleteNodeCommand}" Content="❌ Xóa" MinWidth="80" Foreground="#D32F2F"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddNodeCommand}" Content="➕ Thêm Node" MinWidth="110" MinHeight="25" FontWeight="SemiBold" Background="#93C572"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding AddChildNodeCommand}" Content="🌱 Nhánh con" MinWidth="110" MinHeight="25"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding DeleteNodeCommand}" Content="❌ Xóa" MinWidth="80" MinHeight="25" Background="#FFEF9A9A" Foreground="#B71C1C" BorderBrush="#FFEF5350"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
@@ -238,14 +238,14 @@
                                 </Border>
                                 <Border Background="#10000000" CornerRadius="8" Padding="5" Margin="0,0,10,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ZoomInCommand}" Content="🔍 +" MinWidth="60"/>
-                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ZoomOutCommand}" Content="🔍 -" MinWidth="60"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ZoomInCommand}" Content="🔍 +" MinWidth="60" Background="#FF8A8178"/>
+                                        <Button Style="{StaticResource ToolbarButton}" Command="{Binding ZoomOutCommand}" Content="🔍 -" MinWidth="60" Background="#FF8A8178"/>
                                     </StackPanel>
                                 </Border>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding ToggleThemeCommand}" Content="🌗 Theme" MinWidth="80" Margin="0,0,5,0"/>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677" Foreground="White" Margin="0,0,5,0"/>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearAllCommand}" Content="🗑️ Xóa tất cả" MinWidth="100" Background="#FFEF9A9A" Foreground="#B71C1C" BorderBrush="#FFEF5350" Margin="0,0,5,0"/>
-                                <Button Style="{StaticResource ToolbarButton}" Click="BtnRecent_Click" Content="Recent" MinWidth="80" Background="#FF90CAF9" Foreground="#0D47A1" BorderBrush="#FF42A5F5" ToolTip="Quay lại danh sách"/>
+                                <Button Style="{StaticResource ToolbarButton}" Click="BtnRecent_Click" Content="Recent" MinWidth="80" Background="#FFA6D6FB" Foreground="#0D47A1" BorderBrush="#FF42A5F5" ToolTip="Quay lại danh sách"/>
                             </StackPanel>
                         </ScrollViewer>
                         <ToggleButton Grid.Column="1" x:Name="BtnToggleRight" Click="BtnToggleRight_Click" IsChecked="True" Cursor="Hand" Margin="10,0,5,0" Height="35" Background="Transparent" BorderThickness="0">

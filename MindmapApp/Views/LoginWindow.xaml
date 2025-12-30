@@ -168,7 +168,7 @@
                         <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFEF5350" Margin="0,10,0,0" TextWrapping="Wrap" FontSize="13"/>
 
                         <Button x:Name="LoginButton" Content="Đăng nhập" Margin="0,10,0,0" Click="LoginButton_OnClick" 
-                                Height="36" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"
+                                Height="38" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"
                                 Background="{DynamicResource PrimaryBrush}" Foreground="White"/>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">

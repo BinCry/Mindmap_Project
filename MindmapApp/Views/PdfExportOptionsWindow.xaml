@@ -94,7 +94,8 @@
             </StackPanel>
 
             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-                <Button Content="Hủy bỏ" Click="BtnCancel_Click" Width="100" Height="40" Margin="0,8,20,0"
+
+                <Button Content="Hủy bỏ" Click="BtnCancel_Click" Width="120" Height="40" Margin ="0,0,20,0"
                         Background="{DynamicResource SurfaceBrush}" 
                         Foreground="{DynamicResource TextBrush}" 
                         BorderBrush="{DynamicResource BorderBrush}"
@@ -106,7 +107,7 @@
                     </Button.Resources>
                 </Button>
 
-                <Button Content="Xuất PDF" Click="BtnExport_Click" Width="140" Height="40"
+                <Button Content="Xuất PDF" Click="BtnExport_Click" Width="120" Height="40"
                         FontWeight="Bold">
                     <Button.Resources>
                         <Style TargetType="{x:Type Border}">
