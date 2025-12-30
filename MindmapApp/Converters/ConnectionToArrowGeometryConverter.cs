@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using MindmapApp.ViewModels; // Để dùng Enum ConnectionStyle
 
 namespace MindmapApp.Converters
 {
@@ -10,7 +11,8 @@ namespace MindmapApp.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length < 8) return Geometry.Empty;
+            // 1. Kiểm tra an toàn
+            if (values.Length < 10) return Geometry.Empty;
             foreach (var val in values)
             {
                 if (val == DependencyProperty.UnsetValue || val == null) return Geometry.Empty;
@@ -19,19 +21,30 @@ namespace MindmapApp.Converters
 
             try
             {
-                // Kiểm tra tham số ArrowStyle (tham số thứ 9)
-                string arrowStyle = "Arrow";
-                if (values.Length > 8 && values[8] is string style) arrowStyle = style;
-
-                // Nếu style là None hoặc rỗng thì không vẽ gì cả
-                if (string.IsNullOrEmpty(arrowStyle) || arrowStyle == "None") return Geometry.Empty;
-
+                // 2. Lấy tọa độ (Giữ nguyên)
                 double sx = (double)values[0]; double sy = (double)values[1];
                 double sw = (double)values[2]; double sh = (double)values[3];
-
                 double tx = (double)values[4]; double ty = (double)values[5];
                 double tw = (double)values[6]; double th = (double)values[7];
 
+                // 3. Lấy ConnectionStyle (Tham số thứ 8 - Khớp với XAML)
+                bool isCurved = true;
+                if (values[8] is ConnectionStyle style)
+                {
+                    isCurved = (style == ConnectionStyle.Bezier);
+                }
+
+                // 4. Lấy ArrowStyle (Tham số thứ 9 - Khớp với XAML)
+                bool hasArrow = false;
+                if (values[9]?.ToString() == "Arrow")
+                {
+                    hasArrow = true;
+                }
+
+                // Nếu không có mũi tên thì trả về rỗng
+                if (!hasArrow) return Geometry.Empty;
+
+                // 5. Tính toán điểm (Giữ nguyên logic Intersection chuẩn)
                 Point sourceCenter = new Point(sx + sw / 2, sy + sh / 2);
                 Point targetCenter = new Point(tx + tw / 2, ty + th / 2);
 
@@ -45,39 +58,43 @@ namespace MindmapApp.Converters
                 Point startPoint = rawStartPoint - (direction * overlap);
                 Point endPoint = rawEndPoint + (direction * overlap);
 
-                // --- FIX QUAN TRỌNG: Tính Vector hướng mũi tên ---
-                // Tính điểm điều khiển Bezier để xác định hướng tiếp tuyến tại điểm cuối
-                double distanceX = Math.Abs(endPoint.X - startPoint.X);
-                double distanceY = Math.Abs(endPoint.Y - startPoint.Y);
-                double controlDist = Math.Max(distanceX / 2, 50);
-                if (distanceY > 100 && distanceX < 50) controlDist = distanceY / 3;
-
-                Point control2 = new Point(endPoint.X - controlDist, endPoint.Y);
-
-                Vector tangent = endPoint - control2;
-
-                // Nếu 2 điểm quá gần nhau hoặc thẳng hàng làm vector = 0 -> Dùng hướng thẳng nối 2 tâm
-                if (tangent.Length < 0.1)
+                // 6. Tính toán hướng mũi tên (Vector Tangent)
+                Vector tangent;
+                if (isCurved)
                 {
+                    // Logic tính hướng cho dây cong
+                    double distanceX = Math.Abs(endPoint.X - startPoint.X);
+                    double distanceY = Math.Abs(endPoint.Y - startPoint.Y);
+                    double controlDist = Math.Max(distanceX / 2, 50);
+                    if (distanceY > 100 && distanceX < 50) controlDist = distanceY / 3;
+
+                    Point control2 = new Point(endPoint.X - controlDist, endPoint.Y);
+                    tangent = endPoint - control2;
+                }
+                else
+                {
+                    // Logic tính hướng cho dây thẳng
                     tangent = endPoint - startPoint;
                 }
 
+                if (tangent.Length < 0.1) tangent = endPoint - startPoint;
                 if (tangent.Length > 0) tangent.Normalize();
 
-                // Vẽ hình mũi tên
+                // --- 7. VẼ HÌNH MŨI TÊN (ĐÃ CHỈNH KÍCH THƯỚC TO LÊN) ---
                 StreamGeometry arrowGeo = new StreamGeometry();
                 using (StreamGeometryContext ctx = arrowGeo.Open())
                 {
-                    double arrowLen = 10;
-                    double arrowWidth = 4;
+                    // === CHỈNH KÍCH THƯỚC Ở ĐÂY ===
+                    double arrowLen = 18;  // Độ dài mũi tên (Cũ là 10)
+                    double arrowWidth = 12; // Độ rộng đáy (Cũ là 4)
+                    // ==============================
 
-                    Vector vBack = -tangent; // Hướng ngược lại để vẽ đuôi mũi tên
-                    Vector vLeft = new Vector(-tangent.Y, tangent.X); // Vuông góc trái
+                    Vector vBack = -tangent; // Hướng ngược lại
+                    Vector vLeft = new Vector(-tangent.Y, tangent.X); // Vuông góc
 
-                    // Đỉnh mũi tên nằm tại rawEndPoint (chạm mép node)
-                    Point tip = rawEndPoint;
-                    Point pBase1 = tip + (vBack * arrowLen) + (vLeft * arrowWidth);
-                    Point pBase2 = tip + (vBack * arrowLen) - (vLeft * arrowWidth);
+                    Point tip = rawEndPoint; // Đỉnh mũi tên chạm vào viền Node
+                    Point pBase1 = tip + (vBack * arrowLen) + (vLeft * (arrowWidth / 2));
+                    Point pBase2 = tip + (vBack * arrowLen) - (vLeft * (arrowWidth / 2));
 
                     ctx.BeginFigure(tip, true, true); // true = filled
                     ctx.PolyLineTo(new[] { pBase1, pBase2 }, true, true);

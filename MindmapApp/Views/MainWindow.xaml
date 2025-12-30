@@ -93,6 +93,7 @@
         <conv:ColorToBrushConverter x:Key="ColorToBrushConverter" />
         <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <conv:ConnectionToGeometryConverter x:Key="ConnectionToGeometryConverter" />
+        <conv:ConnectionToArrowGeometryConverter x:Key="ConnectionToArrowGeometryConverter" />
         <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
         <Storyboard x:Key="HideSidebar">
@@ -398,7 +399,7 @@
                                                                   CommandParameter="{Binding}"/>
                                                 </Grid.InputBindings>
 
-                                                <Path x:Name="HitPath" StrokeThickness="20" Stroke="White" Opacity="0" Cursor="Hand">
+                                                <Path x:Name="HitPath" StrokeThickness="20" Stroke="Transparent" Cursor="Hand">
                                                     <Path.Data>
                                                         <MultiBinding Converter="{StaticResource ConnectionToGeometryConverter}">
                                                             <Binding Path="Source.X" />
@@ -409,10 +410,15 @@
                                                             <Binding Path="Target.Y" />
                                                             <Binding Path="Target.Width" />
                                                             <Binding Path="Target.Height" />
+                                                            <Binding Path="ConnectionStyle" />
+                                                            <Binding Path="ArrowStyle" />
                                                         </MultiBinding>
                                                     </Path.Data>
                                                 </Path>
-                                                <Path x:Name="SelectionGlowPath" IsHitTestVisible="False" Stroke="#007ACC" StrokeThickness="6" Opacity="0" StrokeEndLineCap="Round" StrokeStartLineCap="Round">
+
+                                                <Path x:Name="SelectionGlowPath" IsHitTestVisible="False" 
+                                                      Stroke="#007ACC" StrokeThickness="6" Opacity="0" 
+                                                      StrokeEndLineCap="Round" StrokeStartLineCap="Round">
                                                     <Path.Effect>
                                                         <DropShadowEffect Color="#007ACC" BlurRadius="15" ShadowDepth="0" Opacity="1"/>
                                                     </Path.Effect>
@@ -426,10 +432,19 @@
                                                             <Binding Path="Target.Y" />
                                                             <Binding Path="Target.Width" />
                                                             <Binding Path="Target.Height" />
+                                                            <Binding Path="ConnectionStyle" />
+                                                            <Binding Path="ArrowStyle" />
                                                         </MultiBinding>
                                                     </Path.Data>
                                                 </Path>
-                                                <Path x:Name="VisualPath" IsHitTestVisible="False" StrokeThickness="{Binding Thickness}" Stroke="{Binding StrokeColor, Converter={StaticResource ColorToBrushConverter}}" StrokeDashArray="{Binding DashArray}" Opacity="0.9" StrokeEndLineCap="Round" StrokeStartLineCap="Round">
+
+                                                <Path x:Name="VisualPath" IsHitTestVisible="False" 
+                                                      StrokeThickness="{Binding Thickness}" 
+                                                      Stroke="{Binding StrokeColor, Converter={StaticResource ColorToBrushConverter}}" 
+                                                      StrokeDashArray="{Binding DashArray}" 
+                                                      Opacity="0.9" 
+                                                      StrokeEndLineCap="Round" 
+                                                      StrokeStartLineCap="Round">
                                                     <Path.Data>
                                                         <MultiBinding Converter="{StaticResource ConnectionToGeometryConverter}">
                                                             <Binding Path="Source.X" />
@@ -440,17 +455,39 @@
                                                             <Binding Path="Target.Y" />
                                                             <Binding Path="Target.Width" />
                                                             <Binding Path="Target.Height" />
+                                                            <Binding Path="ConnectionStyle" />
+                                                            <Binding Path="ArrowStyle" />
+                                                        </MultiBinding>
+                                                    </Path.Data>
+                                                </Path>
+
+                                                <Path x:Name="ArrowPath" IsHitTestVisible="False"
+                                                      Fill="{Binding StrokeColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                      Stroke="{Binding StrokeColor, Converter={StaticResource ColorToBrushConverter}}"
+                                                      StrokeThickness="1"
+                                                      Opacity="0.9">
+                                                    <Path.Data>
+                                                        <MultiBinding Converter="{StaticResource ConnectionToArrowGeometryConverter}">
+                                                            <Binding Path="Source.X" />
+                                                            <Binding Path="Source.Y" />
+                                                            <Binding Path="Source.Width" />
+                                                            <Binding Path="Source.Height" />
+                                                            <Binding Path="Target.X" />
+                                                            <Binding Path="Target.Y" />
+                                                            <Binding Path="Target.Width" />
+                                                            <Binding Path="Target.Height" />
+                                                            <Binding Path="ConnectionStyle" />
+                                                            <Binding Path="ArrowStyle" />
                                                         </MultiBinding>
                                                     </Path.Data>
                                                 </Path>
                                             </Grid>
+
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding ArrowStyle}" Value="Arrow">
-                                                    <Setter TargetName="VisualPath" Property="StrokeEndLineCap" Value="Triangle" />
-                                                    <Setter TargetName="VisualPath" Property="Panel.ZIndex" Value="5" />
-                                                    <Setter TargetName="SelectionGlowPath" Property="StrokeEndLineCap" Value="Triangle" />
-                                                    <Setter TargetName="HitPath" Property="StrokeEndLineCap" Value="Triangle" />
+                                                    <Setter TargetName="ArrowPath" Property="Panel.ZIndex" Value="10" />
                                                 </DataTrigger>
+
                                                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                     <Setter TargetName="SelectionGlowPath" Property="Opacity" Value="1" />
                                                 </DataTrigger>
@@ -672,13 +709,22 @@
                                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="12" Padding="15">
                                         <StackPanel>
                                             <TextBlock Text="THUỘC TÍNH LIÊN KẾT" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+
                                             <TextBlock Text="Màu dây" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
                                             <xctk:ColorPicker SelectedColor="{Binding SelectedConnection.StrokeColor, UpdateSourceTrigger=PropertyChanged}" DisplayColorAndName="True" ShowRecentColors="True" ShowDropDownButton="False" Height="40" Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource BorderBrush}"/>
 
                                             <TextBlock Text="Độ dày dây" Foreground="{DynamicResource TextBrush}" Margin="0,15,0,4"/>
                                             <Slider Minimum="1" Maximum="10" Value="{Binding SelectedConnection.Thickness, UpdateSourceTrigger=PropertyChanged}" AutoToolTipPlacement="TopLeft" Margin="0,0,0,10"/>
 
-                                            <TextBlock Text="Kiểu đường" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Hình dáng dây" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding SelectedConnection.ConnectionStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                      Height="26" Style="{StaticResource ThemedComboBox}" 
+                      SelectedValuePath="Tag" Margin="0,0,0,8">
+                                                <ComboBoxItem Content="Dây cong mềm (Bezier)" Tag="Bezier" />
+                                                <ComboBoxItem Content="Dây thẳng (Straight)" Tag="Straight" />
+                                            </ComboBox>
+
+                                            <TextBlock Text="Kiểu nét" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding SelectedConnection.LineStyle, Mode=TwoWay}" Height="26" Style="{StaticResource ThemedComboBox}" SelectedValuePath="Tag" Margin="0,0,0,8">
                                                 <ComboBoxItem Content="Nét liền" Tag="Solid" />
                                                 <ComboBoxItem Content="Nét đứt" Tag="Dashed" />
@@ -687,7 +733,7 @@
                                             <TextBlock Text="Mũi tên" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding SelectedConnection.ArrowStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="26" Style="{StaticResource ThemedComboBox}" SelectedValuePath="Tag" Margin="0,0,0,12">
                                                 <ComboBoxItem Content="Không mũi tên" Tag="None" />
-                                                <ComboBoxItem Content="Mũi tên" Tag="Arrow" />
+                                                <ComboBoxItem Content="Có mũi tên" Tag="Arrow" />
                                             </ComboBox>
 
                                             <Button Content="Xóa liên kết này" Command="{Binding DeleteConnectionCommand}" Background="#333" Foreground="#FF5555" BorderThickness="0" Padding="10" Cursor="Hand">
