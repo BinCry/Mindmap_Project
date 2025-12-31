@@ -796,10 +796,11 @@
         </Border>
 
         <views:ProfileDialog Grid.RowSpan="2" Panel.ZIndex="999"/>
+
         <Button Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,20,0,0"
-        Command="{Binding ExitPresentationCommand}"
-        Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}}"
-        Panel.ZIndex="1000" Cursor="Hand">
+                Command="{Binding ExitPresentationCommand}"
+                Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Panel.ZIndex="1000" Cursor="Hand">
             <Button.Template>
                 <ControlTemplate TargetType="Button">
                     <Border Background="#CC000000" CornerRadius="20" Padding="20,10">
@@ -811,5 +812,93 @@
                 </ControlTemplate>
             </Button.Template>
         </Button>
+
+        <Grid Visibility="{Binding PresentationFocusNode, Converter={StaticResource NullToVisibilityConverter}}"
+              Panel.ZIndex="2000"
+              Background="#EE111111">
+
+            <Grid.Triggers>
+                <EventTrigger RoutedEvent="Grid.Loaded">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.3"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Grid.Triggers>
+
+            <Button Command="{Binding ExitFocusModeCommand}"
+                    Background="Transparent" BorderThickness="0"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent"/>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <Border Width="900" Height="600"
+                    Background="{Binding PresentationFocusNode.BackgroundColor, Converter={StaticResource ColorToBrushConverter}}"
+                    BorderBrush="{Binding PresentationFocusNode.BorderColor, Converter={StaticResource ColorToBrushConverter}}"
+                    BorderThickness="6"
+                    CornerRadius="30"
+                    Padding="40">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="60" ShadowDepth="10" Color="Black" Opacity="0.6"/>
+                </Border.Effect>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="{Binding PresentationFocusNode.Title}"
+                               Foreground="{Binding PresentationFocusNode.TextColor, Converter={StaticResource ColorToBrushConverter}}"
+                               FontSize="48" FontWeight="Bold"
+                               TextAlignment="Center" TextWrapping="Wrap"
+                               Margin="0,0,0,30"
+                               HorizontalAlignment="Center"/>
+
+                    <RichTextBox Grid.Row="1" IsReadOnly="True" IsHitTestVisible="False" Focusable="False"
+                                 helpers:RichTextBoxHelper.DocumentXaml="{Binding PresentationFocusNode.ContentXaml}"
+                                 Background="Transparent" BorderThickness="0"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                        <RichTextBox.Resources>
+                            <Style TargetType="{x:Type Paragraph}">
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="TextAlignment" Value="Center"/>
+                            </Style>
+                            <Style TargetType="{x:Type FlowDocument}">
+                                <Setter Property="FontFamily" Value="{Binding PresentationFocusNode.FontFamily, FallbackValue=Arial}"/>
+                                <Setter Property="FontSize" Value="28"/>
+                                <Setter Property="Foreground" Value="{Binding PresentationFocusNode.TextColor, Converter={StaticResource ColorToBrushConverter}}"/>
+                                <Setter Property="PagePadding" Value="0"/>
+                            </Style>
+                        </RichTextBox.Resources>
+                    </RichTextBox>
+
+                    <Button Grid.Row="2" Command="{Binding ExitFocusModeCommand}"
+                            Content="Thoát (hoặc nhấn ra ngoài)"
+                            HorizontalAlignment="Center"
+                            Padding="20,10" Margin="0,20,0,0"
+                            Background="#40000000" 
+                            Foreground="{Binding PresentationFocusNode.TextColor, Converter={StaticResource ColorToBrushConverter}}"
+                            BorderThickness="0" Cursor="Hand" FontSize="14">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" 
+                                        CornerRadius="15" 
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+
     </Grid>
 </Window>

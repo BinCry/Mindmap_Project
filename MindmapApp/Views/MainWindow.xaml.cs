@@ -376,15 +376,80 @@ namespace MindmapApp.Views
         {
             if (sender is Thumb thumb && thumb.Tag is NodeViewModel node)
             {
+               
+                if (_viewModel.IsPresentationMode)
+                {
+                    HandlePresentationClick(node);
+                    e.Handled = true; // Quan trọng: Chặn sự kiện drag/edit tiếp theo
+                    return;
+                }
+                // ----------------------------------------
+
                 if (_viewModel.SelectedNode == node)
                 {
                     _viewModel.SelectedNode = null;
                 }
+                else
+                {
+                    _viewModel.SelectedNode = node;
+                }
 
-                _viewModel.SelectedNode = node;
                 _viewModel.CompleteConnectionCommand.Execute(node);
                 e.Handled = false;
             }
+        }
+        // Xử lý riêng cho click khi đang thuyết trình
+        private void HandlePresentationClick(NodeViewModel node)
+        {
+            // Di chuyển camera đến node được click
+            CenterOnSpecificNode(node);
+        }
+
+        // Hàm hỗ trợ: Căn giữa màn hình vào một Node bất kỳ
+        private void CenterOnSpecificNode(NodeViewModel node)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (MainScrollViewer == null) return;
+
+                // --- 1. THIẾT LẬP ĐỘ PHÓNG TO MONG MUỐN ---
+                // Ví dụ: Set cứng là 1.5 (tương đương 150%) để nhìn rõ nội dung
+                double targetZoom = 1.5;
+
+                // Nếu bạn muốn logic thông minh hơn: 
+                // Chỉ phóng to nếu mức zoom hiện tại đang nhỏ hơn 1.5
+                if (_viewModel.ZoomLevel < targetZoom)
+                {
+                    _viewModel.ZoomLevel = targetZoom;
+
+                    // Cập nhật layout ngay lập tức để ScrollViewer nhận diện kích thước mới
+                    // (Giúp tránh lỗi cuộn không tới đích do giao diện chưa kịp giãn ra)
+                    MainScrollViewer.UpdateLayout();
+                }
+                else
+                {
+                    // Nếu đang to sẵn rồi (ví dụ 2.0) thì giữ nguyên mức zoom đó để tính toán
+                    targetZoom = _viewModel.ZoomLevel;
+                }
+
+                // --- 2. TÍNH TOÁN TỌA ĐỘ DỰA TRÊN ZOOM LEVEL MỚI ---
+                // Lấy tọa độ tâm của Node
+                double targetX = node.X + (node.Width / 2);
+                double targetY = node.Y + (node.Height / 2);
+
+                // Quy đổi ra tọa độ pixel màn hình với mức zoom targetZoom
+                double scaledTargetX = targetX * targetZoom;
+                double scaledTargetY = targetY * targetZoom;
+
+                // Tính offset để đưa điểm đó vào chính giữa khung nhìn
+                double offsetX = scaledTargetX - (MainScrollViewer.ViewportWidth / 2);
+                double offsetY = scaledTargetY - (MainScrollViewer.ViewportHeight / 2);
+
+                // --- 3. THỰC HIỆN CUỘN ---
+                MainScrollViewer.ScrollToHorizontalOffset(offsetX);
+                MainScrollViewer.ScrollToVerticalOffset(offsetY);
+
+            }, System.Windows.Threading.DispatcherPriority.Render);
         }
 
         private void StartConnectionButton_OnClick(object sender, RoutedEventArgs e)

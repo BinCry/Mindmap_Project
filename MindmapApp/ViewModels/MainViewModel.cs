@@ -33,6 +33,27 @@ namespace MindmapApp.ViewModels
         [ObservableProperty] private NodeViewModel? _selectedNode;
         [ObservableProperty] private ConnectionViewModel? _selectedConnection;
         [ObservableProperty] private bool _isPresentationMode;
+
+        [ObservableProperty]
+        private NodeViewModel? _presentationFocusNode;
+
+        // Lệnh: Phóng to Node (chỉ hoạt động khi đang ở chế độ Trình chiếu)
+        [RelayCommand]
+        private void EnterFocusMode(NodeViewModel? node)
+        {
+            if (!IsPresentationMode || node == null) return;
+
+            PresentationFocusNode = node;
+        }
+
+        // Lệnh: Thoát chế độ phóng to (quay về nhìn toàn cảnh)
+        [RelayCommand]
+        private void ExitFocusMode()
+        {
+            PresentationFocusNode = null;
+        }
+
+
         private double _zoomLevel = 1.0;
         public double ZoomLevel
         {
@@ -181,6 +202,7 @@ namespace MindmapApp.ViewModels
         private void ExitPresentation()
         {
             IsPresentationMode = false;
+            PresentationFocusNode = null; 
             foreach (var node in Nodes)
             {
                 node.ResetToNormal();
