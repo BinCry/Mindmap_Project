@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using MindmapApp.Views;
 
 namespace MindmapApp.ViewModels
 {
@@ -31,7 +32,7 @@ namespace MindmapApp.ViewModels
         [ObservableProperty] private string _title = "Mindmap của tôi";
         [ObservableProperty] private NodeViewModel? _selectedNode;
         [ObservableProperty] private ConnectionViewModel? _selectedConnection;
-        [ObservableProperty] private bool _isPresentationMode; // Biến mới: Trạng thái trình chiếu
+        [ObservableProperty] private bool _isPresentationMode;
         private double _zoomLevel = 1.0;
         public double ZoomLevel
         {
@@ -74,6 +75,9 @@ namespace MindmapApp.ViewModels
         public UserAccount CurrentUser => _currentUser;
         public string CurrentUserDisplayName => _currentUser?.DisplayName ?? "User";
 
+        // Property kiểm tra Pro
+        public bool IsProAccount => _currentUser.IsPro;
+
         public ObservableCollection<NodeViewModel> Nodes { get; } = new();
         public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
         public ObservableCollection<NodeViewModel> SearchResults { get; } = new();
@@ -92,8 +96,6 @@ namespace MindmapApp.ViewModels
             _storageService = storageService;
             _userService = userService;
             _currentUser = currentUser;
-
-            // Use the singleton instance
             _undoRedoService = App.UndoRedoService;
 
             ShapeOptions = new ObservableCollection<string>(new[] { "RoundedRectangle", "Rectangle", "Ellipse", "Diamond", "Parallelogram", "Hexagon" });
@@ -141,7 +143,6 @@ namespace MindmapApp.ViewModels
         [RelayCommand]
         private void StartPresentation()
         {
-            // 1. KIỂM TRA: Đếm số lượng Node gốc (Node không có cha)
             var rootNodes = Nodes.Where(n => n.Parent == null).ToList();
 
             if (rootNodes.Count == 0)
@@ -157,37 +158,29 @@ namespace MindmapApp.ViewModels
                 return;
             }
 
-            // 2. XÁC NHẬN
             var result = MessageBox.Show("Sẵn sàng vào chế độ trình chiếu?\n\nChế độ này sẽ ẩn các công cụ và bắt đầu từ chủ đề trung tâm.",
                                          "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (result != MessageBoxResult.Yes) return;
 
-            // 3. THIẾT LẬP TRẠNG THÁI
             IsPresentationMode = true;
-            SelectedNode = null;      // Bỏ chọn Node để giao diện sạch sẽ
-            SelectedConnection = null; // Bỏ chọn dây nối
-            IsCanvasSelected = true;   // Focus vào nền
+            SelectedNode = null;
+            SelectedConnection = null;
+            IsCanvasSelected = true;
 
-            // 4. RESET NODE: Gọi hàm ResetForPresentation ta vừa viết ở Bước 1
             var root = rootNodes.First();
             foreach (var node in Nodes)
             {
-                // Chỉ hiện node nếu nó là Root, còn lại ẩn hết
                 node.ResetForPresentation(isRoot: node == root);
             }
 
-            // (Tuỳ chọn) Nếu bạn có hàm CenterView, hãy gọi ở đây để đưa root ra giữa
             RequestCenterView?.Invoke(this, EventArgs.Empty);
         }
 
-        // Thoát trình chiếu
         [RelayCommand]
         private void ExitPresentation()
         {
             IsPresentationMode = false;
-
-            // Khôi phục hiển thị cho tất cả node
             foreach (var node in Nodes)
             {
                 node.ResetToNormal();
@@ -276,7 +269,7 @@ namespace MindmapApp.ViewModels
         [RelayCommand]
         private void AddNode()
         {
-            RecordHistory(); // Record BEFORE change
+            RecordHistory();
             var baseColor = (Color)ColorConverter.ConvertFromString(_palette[Random.Shared.Next(_palette.Length)])!;
             double startX, startY;
 
@@ -323,7 +316,7 @@ namespace MindmapApp.ViewModels
             var parentNode = SelectedNode;
             if (parentNode == null) return;
 
-            RecordHistory(); // Record BEFORE change
+            RecordHistory();
 
             int childCount = Nodes.Count(n => n.Parent == parentNode);
             double childX = parentNode.X + parentNode.Width + 80;
@@ -386,7 +379,7 @@ namespace MindmapApp.ViewModels
                 return;
             }
 
-            RecordHistory(); // Record BEFORE change
+            RecordHistory();
 
             var node = SelectedNode;
             Nodes.Remove(node);
@@ -400,7 +393,7 @@ namespace MindmapApp.ViewModels
         {
             if (SelectedConnection != null)
             {
-                RecordHistory(); // Record BEFORE change
+                RecordHistory();
                 Connections.Remove(SelectedConnection);
                 SelectedConnection = null;
                 QueueAutoSave();
@@ -412,7 +405,7 @@ namespace MindmapApp.ViewModels
         {
             if (MessageBox.Show("Bạn có chắc chắn muốn xóa toàn bộ Node và Liên kết không?", "Xác nhận xóa tất cả", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
-                RecordHistory(); // Record BEFORE change
+                RecordHistory();
                 Connections.Clear();
                 Nodes.Clear();
                 SelectedNode = null;
@@ -473,7 +466,7 @@ namespace MindmapApp.ViewModels
             {
                 if (node == _pendingConnectionNode) { _pendingConnectionNode = null; return; }
 
-                RecordHistory(); // Record BEFORE change
+                RecordHistory();
 
                 NodeViewModel source = _pendingConnectionNode;
                 NodeViewModel target = node;
@@ -504,7 +497,7 @@ namespace MindmapApp.ViewModels
             {
                 if (node == _pendingDisconnectNode) { _pendingDisconnectNode = null; return; }
 
-                RecordHistory(); // Record BEFORE change
+                RecordHistory();
 
                 var rm = Connections.Where(c => (c.SourceId == _pendingDisconnectNode.Id && c.TargetId == node.Id) || (c.SourceId == node.Id && c.TargetId == _pendingDisconnectNode.Id)).ToList();
                 foreach (var c in rm) Connections.Remove(c);
@@ -531,7 +524,7 @@ namespace MindmapApp.ViewModels
                 var topic = parameter as string ?? Title;
                 if (string.IsNullOrWhiteSpace(App.GoogleAiApiKey)) { StatusMessage = "Chưa cấu hình API Key"; return; }
 
-                RecordHistory(); // Record BEFORE change
+                RecordHistory();
 
                 var document = await _aiService.GenerateMindmapAsync(topic, App.GoogleAiApiKey);
                 if (document == null) { StatusMessage = "AI không trả về mindmap phù hợp"; return; }
@@ -551,7 +544,7 @@ namespace MindmapApp.ViewModels
             Color? color = ParseColor(parameter);
             if (!color.HasValue) return;
 
-            RecordHistory(); // Record BEFORE change
+            RecordHistory();
 
             if (SelectedNode != null) { SelectedNode.BackgroundColor = color.Value; SelectedNode.BorderColor = Darken(color.Value); }
             else if (SelectedConnection != null) { SelectedConnection.StrokeColor = color.Value; }
@@ -562,7 +555,7 @@ namespace MindmapApp.ViewModels
         {
             if (SelectedNode == null) return;
 
-            RecordHistory(); // Record BEFORE change
+            RecordHistory();
 
             Color? color = ParseColor(parameter);
             if (color.HasValue) SelectedNode.TextColor = color.Value;
@@ -599,6 +592,7 @@ namespace MindmapApp.ViewModels
 
         public async Task FlushAutoSaveAsync() { if (_isLoading) return; _autoSaveTimer.Stop(); await SaveMindmapAsync(); }
         private async Task AutoSaveAsync() { _autoSaveTimer.Stop(); await SaveMindmapAsync(); }
+
         private async Task SaveMindmapAsync()
         {
             if (_isSaving || _isLoading) return;
@@ -608,51 +602,42 @@ namespace MindmapApp.ViewModels
                 _isSaving = true;
                 var doc = BuildDocumentSnapshot();
 
-                // 1. Kiểm tra xem Map này đã có trong Database chưa?
                 var existingMap = await _storageService.GetMapAsync(doc.Id);
                 bool isNewMap = (existingMap == null);
 
-                // 2. Nếu là Map Mới -> Kiểm tra giới hạn số lượng
                 if (isNewMap)
                 {
                     int count = await _storageService.GetMapCountAsync(_currentUser.Id);
 
-                    if (count >= 5)
+                    // Check Pro
+                    if (!_currentUser.IsPro && count >= 5)
                     {
-                        // Tạm dừng AutoSave để không bị hiện popup liên tục
                         _autoSaveTimer.Stop();
 
                         var result = MessageBox.Show(
-                            "Bạn đã đạt giới hạn lưu trữ 5 Mindmap.\n\n" +
-                            "Bạn có muốn XÓA Mindmap cũ nhất để lưu bản đồ mới này không?",
-                            "Cảnh báo dung lượng",
+                            "Bạn đã đạt giới hạn 5 Mindmap (Tài khoản Free).\n\n" +
+                            "Bạn có muốn XÓA Mindmap cũ nhất để lưu bản đồ mới này không?\n\n(Hoặc nâng cấp Pro để không giới hạn)",
+                            "Giới hạn dung lượng",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Warning);
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            // Tìm và xóa map cũ nhất
                             var oldestId = await _storageService.GetOldestMapIdAsync(_currentUser.Id);
                             if (oldestId != null)
                             {
                                 await _storageService.DeleteMapAsync(oldestId.Value);
                             }
-
-                            // Bật lại AutoSave sau khi xử lý xong
                             _autoSaveTimer.Start();
                         }
                         else
                         {
-                            // Người dùng chọn No -> Hủy lưu
-                            // (Map này sẽ chỉ nằm trên RAM, không xuống DB)
                             return;
                         }
                     }
                 }
 
-                // 3. Tiến hành lưu xuống DB
                 await _storageService.SaveDocumentAsync(doc);
-                // StatusMessage = "Đã lưu"; // (Bật dòng này nếu muốn hiện chữ Đã lưu)
             }
             catch (Exception ex)
             {
@@ -681,21 +666,11 @@ namespace MindmapApp.ViewModels
                 doc = await _storageService.GetMapAsync(documentId.Value);
                 if (doc == null)
                 {
-                    // If not found, fall back to default or empty
-                     doc = new MindmapDocument { OwnerId = _currentUser.Id, Title = "Mindmap không tên" };
+                    doc = new MindmapDocument { OwnerId = _currentUser.Id, Title = "Mindmap không tên" };
                 }
             }
             else
             {
-                // New Map or Default load logic (For "New Map" from Recent page, we likely passed NULL or came here with empty. 
-                // But RecentsPage passes NULL for "New Map". 
-                // If NULL, create new empty map. 
-                // BUT current logic was "LoadOrCreateAsync" (Load LAST map).
-                // If checking "History", we want "New Map" to be NEW.
-                // So if documentId is NULL, we create NEW.
-                // But wait, what if existing calls expect loading last map?
-                // MainWindow is ONLY called from RecentsPage now (once Login is updated).
-                // So NULL means NEW MAP.
                 doc = new MindmapDocument
                 {
                     Id = Guid.NewGuid(),
@@ -704,7 +679,7 @@ namespace MindmapApp.ViewModels
                     UpdatedAt = DateTime.UtcNow
                 };
             }
-            
+
             LoadMindmap(doc);
             if (Nodes.Count == 0) { CreateCentralNode(); await FlushAutoSaveAsync(); }
             else RequestCenterView?.Invoke(this, EventArgs.Empty);
@@ -715,7 +690,6 @@ namespace MindmapApp.ViewModels
             if (document == null) throw new ArgumentNullException(nameof(document));
             _isLoading = true;
 
-            // Save selection state to restore after reload if possible
             var previousSelectedNodeId = SelectedNode?.Id;
             var previousSelectedConnId = SelectedConnection?.Id;
 
@@ -735,7 +709,7 @@ namespace MindmapApp.ViewModels
 
                 if (n.IsRoot)
                 {
-                    vm.IsDraggable = true; // [UPDATED] Cho phép di chuyển node gốc
+                    vm.IsDraggable = false;
                     vm.IsDeletable = false;
                 }
 
@@ -751,7 +725,6 @@ namespace MindmapApp.ViewModels
             }
             foreach (var c in Connections) if (c.Source != null && c.Target != null) c.Target.Parent = c.Source;
 
-            // Restore selection
             if (previousSelectedNodeId.HasValue) SelectedNode = Nodes.FirstOrDefault(n => n.Id == previousSelectedNodeId.Value);
             if (previousSelectedConnId.HasValue) SelectedConnection = Connections.FirstOrDefault(c => c.Id == previousSelectedConnId.Value);
 
@@ -804,7 +777,7 @@ namespace MindmapApp.ViewModels
                 TextColor = Colors.White,
                 FontSize = 18,
                 FontWeight = "Bold",
-                IsDraggable = true, // [UPDATED] Cho phép di chuyển node gốc
+                IsDraggable = false,
                 IsDeletable = false
             };
 
@@ -818,7 +791,6 @@ namespace MindmapApp.ViewModels
         private Color? ParseColor(object? p) => p is Color c ? c : p is SolidColorBrush b ? b.Color : p is string s ? (Color?)ColorConverter.ConvertFromString(s) : null;
         private static Color Darken(Color c) => Color.FromArgb(c.A, (byte)(c.R * 0.8), (byte)(c.G * 0.8), (byte)(c.B * 0.8));
 
-        // --- QUAN TRỌNG: Cập nhật hàm CloneNode để copy đủ thuộc tính mới ---
         private static NodeModel CloneNode(NodeModel m) => new NodeModel
         {
             Id = m.Id,
@@ -838,17 +810,66 @@ namespace MindmapApp.ViewModels
             FontFamily = m.FontFamily,
             IsDraggable = m.IsDraggable,
             IsDeletable = m.IsDeletable,
-
-            // Các thuộc tính mới
             IsBold = m.IsBold,
             IsItalic = m.IsItalic,
             IsUnderline = m.IsUnderline,
             IsStrikethrough = m.IsStrikethrough,
             FontWeight = m.FontWeight,
-
             Tags = new ObservableCollection<string>(m.Tags)
         };
 
         private static ConnectionModel CloneConnection(ConnectionModel m) => new ConnectionModel { Id = m.Id, SourceId = m.SourceId, TargetId = m.TargetId, StrokeColor = m.StrokeColor, Thickness = m.Thickness, IsCurved = m.IsCurved, DashOffset = m.DashOffset, DashArray = m.DashArray != null ? new DoubleCollection(m.DashArray) : null, ArrowStyle = m.ArrowStyle };
+
+        // =========================================================
+        // ✨ TÍNH NĂNG MỚI: PRO ACCOUNT & EXPORT
+        // =========================================================
+
+        private bool CheckProFeature(string featureName)
+        {
+            if (_currentUser.IsPro) return true;
+
+            var result = MessageBox.Show(
+                $"Tính năng '{featureName}' chỉ dành cho tài khoản Pro.\n\n" +
+                "Bạn có muốn nâng cấp ngay (chỉ 10k trọn đời) không?",
+                "Yêu cầu nâng cấp",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                OpenUpgradeWindow();
+            }
+            return false;
+        }
+
+        // ✨ ĐỔI THÀNH PUBLIC ĐỂ GỌI TỪ CODE-BEHIND
+        [RelayCommand]
+        public void OpenUpgradeWindow()
+        {
+            var upgradeWin = new UpgradeWindow(_currentUser.Id, _userService);
+            upgradeWin.Owner = Application.Current.MainWindow;
+            upgradeWin.ShowDialog();
+
+            if (upgradeWin.IsSuccess)
+            {
+                _currentUser.IsPro = true;
+                OnPropertyChanged(nameof(IsProAccount));
+                IsProfileDialogOpen = false;
+            }
+        }
+
+        // Các hàm này giữ lại cho binding command nếu cần,
+        // nhưng ở MainWindow.xaml.cs chúng ta sẽ gọi logic trực tiếp để check Pro.
+        [RelayCommand]
+        private void ExportImage()
+        {
+            if (!CheckProFeature("Xuất hình ảnh")) return;
+        }
+
+        [RelayCommand]
+        private void ExportPdf()
+        {
+            if (!CheckProFeature("Xuất PDF")) return;
+        }
     }
 }

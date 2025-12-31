@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace MindmapApp.Models;
 
@@ -11,4 +11,7 @@ public class UserAccount
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; } = null;
     public string? DisplayName { get; set; } = null;
+
+    // ✨ MỚI: Trạng thái VIP
+    public bool IsPro { get; set; } = false;
 }

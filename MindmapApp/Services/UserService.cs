@@ -46,10 +46,10 @@ public class UserService
         // Tạo hash và salt
         var (hash, salt) = _passwordHasher.HashPassword(password);
 
-        // 2. Thực hiện INSERT
+        // 2. Thực hiện INSERT (Mặc định IsPro là 0/False)
         var insertSql = @"
-            INSERT INTO Users (Id, Email, PasswordHash, PasswordSalt, DisplayName, CreatedAt) 
-            VALUES (@Id, @Email, @PasswordHash, @PasswordSalt, @DisplayName, @CreatedAt)";
+            INSERT INTO Users (Id, Email, PasswordHash, PasswordSalt, DisplayName, CreatedAt, IsPro) 
+            VALUES (@Id, @Email, @PasswordHash, @PasswordSalt, @DisplayName, @CreatedAt, 0)";
 
         await using var insertCommand = connection.CreateCommand();
         insertCommand.CommandText = insertSql;
@@ -69,7 +69,8 @@ public class UserService
         await using var connection = _databaseService.GetConnection();
         await connection.OpenAsync();
 
-        var sql = "SELECT Id, Email, PasswordHash, PasswordSalt, DisplayName, CreatedAt, LastLoginAt FROM Users WHERE Email = @Email";
+        // ✨ CẬP NHẬT: Lấy thêm cột IsPro
+        var sql = "SELECT Id, Email, PasswordHash, PasswordSalt, DisplayName, CreatedAt, LastLoginAt, IsPro FROM Users WHERE Email = @Email";
 
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
@@ -86,6 +87,9 @@ public class UserService
             var createdAtStr = reader.IsDBNull(5) ? null : reader.GetString(5);
             var lastLoginStr = reader.IsDBNull(6) ? null : reader.GetString(6);
 
+            // ✨ Đọc trạng thái Pro (cột số 7)
+            var isPro = !reader.IsDBNull(7) && reader.GetInt32(7) == 1;
+
             // Xác minh mật khẩu
             bool passwordOk = _passwordHasher.Verify(password, storedHash, storedSalt);
 
@@ -99,7 +103,8 @@ public class UserService
                     PasswordSalt = storedSalt,
                     DisplayName = displayName,
                     CreatedAt = DateTime.TryParse(createdAtStr, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var created) ? created : DateTime.MinValue,
-                    LastLoginAt = DateTime.TryParse(lastLoginStr, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var lastLogin) ? lastLogin : null
+                    LastLoginAt = DateTime.TryParse(lastLoginStr, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var lastLogin) ? lastLogin : null,
+                    IsPro = isPro // ✨ Gán giá trị vào Model
                 };
 
                 await reader.DisposeAsync();
@@ -111,6 +116,19 @@ public class UserService
         }
 
         return null;
+    }
+
+    // ✨ MỚI: Hàm nâng cấp tài khoản lên Pro
+    public async Task<bool> UpgradeToProAsync(Guid userId)
+    {
+        await using var connection = _databaseService.GetConnection();
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE Users SET IsPro = 1 WHERE Id = @Id";
+        command.Parameters.AddWithValue("@Id", userId.ToString());
+
+        return await command.ExecuteNonQueryAsync() > 0;
     }
 
     private async Task UpdateLastLoginAsync(Guid userId)
@@ -156,11 +174,8 @@ public class UserService
         return await command.ExecuteNonQueryAsync() == 1;
     }
 
-    // --- MỚI: CÁC HÀM HỖ TRỢ ĐỔI MẬT KHẨU TỪ PROFILE ---
+    // --- CÁC HÀM HỖ TRỢ PROFILE ---
 
-    /// <summary>
-    /// Cập nhật thông tin User (DisplayName, Password) xuống DB theo ID
-    /// </summary>
     public async Task<bool> UpdateUserAsync(UserAccount user)
     {
         await using var connection = _databaseService.GetConnection();
@@ -182,13 +197,11 @@ public class UserService
         return await command.ExecuteNonQueryAsync() > 0;
     }
 
-    // Hỗ trợ kiểm tra mật khẩu cũ mà không cần lộ class PasswordHasher
     public bool VerifyUserPassword(string rawPassword, string hash, string salt)
     {
         return _passwordHasher.Verify(rawPassword, hash, salt);
     }
 
-    // Hỗ trợ tạo hash mới
     public (string Hash, string Salt) ComputeHash(string rawPassword)
     {
         return _passwordHasher.HashPassword(rawPassword);

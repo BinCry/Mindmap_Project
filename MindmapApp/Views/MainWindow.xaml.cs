@@ -54,7 +54,8 @@ namespace MindmapApp.Views
             DataContext = _viewModel;
             _previousZoomLevel = _viewModel.ZoomLevel;
 
-            Placeholder.Visibility = string.IsNullOrEmpty(_viewModel.SearchText) ? Visibility.Visible : Visibility.Collapsed;
+            if (Placeholder != null)
+                Placeholder.Visibility = string.IsNullOrEmpty(_viewModel.SearchText) ? Visibility.Visible : Visibility.Collapsed;
 
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
@@ -64,11 +65,13 @@ namespace MindmapApp.Views
             _viewModel.RequestCenterView += (s, e) => CenterOnRootNode();
             _viewModel.LogoutRequested += ViewModel_LogoutRequested;
 
-            MindmapWorkspace.MouseWheel += MindmapWorkspace_MouseWheel;
+            if (MindmapWorkspace != null)
+                MindmapWorkspace.MouseWheel += MindmapWorkspace_MouseWheel;
         }
 
-        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private async void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            // 1. Xử lý Zoom (Giữ nguyên)
             if (e.PropertyName == nameof(MainViewModel.ZoomLevel))
             {
                 if (!_isMouseWheelZooming)
@@ -76,8 +79,51 @@ namespace MindmapApp.Views
                     HandleZoomToViewportCenter();
                 }
             }
-        }
 
+            // 2. Xử lý Chế độ Trình chiếu
+            if (e.PropertyName == nameof(MainViewModel.IsPresentationMode))
+            {
+                if (_viewModel.IsPresentationMode)
+                {
+                    // === VÀO CHẾ ĐỘ TRÌNH CHIẾU ===
+
+                    // Tự động thu Sidebar TRÁI
+                    if (isSidebarVisible)
+                    {
+                        ToggleSidebar_Click(null, null);
+                    }
+
+                    // Tự động thu Sidebar PHẢI
+                    if (BtnToggleRight.IsChecked == true)
+                    {
+                        BtnToggleRight.IsChecked = false;
+                        BtnToggleRight_Click(BtnToggleRight, null);
+                    }
+                }
+                else
+                {
+                    // === THOÁT CHẾ ĐỘ TRÌNH CHIẾU ===
+
+                    // Tự động mở lại Sidebar TRÁI
+                    if (!isSidebarVisible)
+                    {
+                        ToggleSidebar_Click(null, null);
+                    }
+
+                    // Tự động mở lại Sidebar PHẢI
+                    if (BtnToggleRight.IsChecked == false)
+                    {
+                        BtnToggleRight.IsChecked = true;
+                        BtnToggleRight_Click(BtnToggleRight, null);
+                    }
+                }
+
+                // 3. TỰ ĐỘNG CĂN GIỮA (Logic mới)
+                // Chờ 300ms cho Sidebar trượt xong để tính toán tâm màn hình chính xác
+                await Task.Delay(300);
+                CenterOnRootNode();
+            }
+        }
         private void ViewModel_LogoutRequested(object? sender, EventArgs e)
         {
             LoginWindow loginWindow = new LoginWindow();
@@ -219,7 +265,7 @@ namespace MindmapApp.Views
 
         #endregion
 
-        #region UI Logic
+        #region UI Logic (Sidebar & Header Toggle)
 
         private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
         {
@@ -229,9 +275,21 @@ namespace MindmapApp.Views
 
             storyboard.Begin(this);
             isSidebarVisible = !isSidebarVisible;
-            ToggleButton.Content = isSidebarVisible ? "◀" : "▶";
+            if (ToggleButton != null) ToggleButton.Content = isSidebarVisible ? "◀" : "▶";
         }
 
+        private void BtnToggleRight_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleButton btn)
+            {
+                bool isOpening = btn.IsChecked == true;
+                var animationKey = isOpening ? "ExpandRight" : "CollapseRight";
+                var sb = this.FindResource(animationKey) as Storyboard;
+                sb?.Begin();
+            }
+        }
+
+        // ✨ PHẦN BỊ THIẾU ĐÃ ĐƯỢC THÊM LẠI ✨
         private bool isHeaderVisible = true;
         private double headerTopHeight = 60;
         private double headerToolbarHeight = 60;
@@ -251,7 +309,7 @@ namespace MindmapApp.Views
                 // Animate to 0
                 DoubleAnimation animTop = new DoubleAnimation(0, new Duration(TimeSpan.FromSeconds(0.25)));
                 DoubleAnimation animToolbar = new DoubleAnimation(0, new Duration(TimeSpan.FromSeconds(0.25)));
-                
+
                 HeaderContentGrid.BeginAnimation(FrameworkElement.HeightProperty, animTop);
                 HeaderToolbarBorder.BeginAnimation(FrameworkElement.HeightProperty, animToolbar);
 
@@ -272,17 +330,6 @@ namespace MindmapApp.Views
                 ToggleHeaderButton.Content = "▲";
             }
             isHeaderVisible = !isHeaderVisible;
-        }
-
-        private void BtnToggleRight_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is ToggleButton btn)
-            {
-                bool isOpening = btn.IsChecked == true;
-                var animationKey = isOpening ? "ExpandRight" : "CollapseRight";
-                var sb = this.FindResource(animationKey) as Storyboard;
-                sb?.Begin();
-            }
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -511,6 +558,17 @@ namespace MindmapApp.Views
 
         private void BtnExportImage_Click(object sender, RoutedEventArgs e)
         {
+            // ✨ CHECK QUYỀN PRO: Gọi trực tiếp hàm đã public trong ViewModel
+            if (!_viewModel.IsProAccount)
+            {
+                if (MessageBox.Show("Tính năng Xuất Ảnh chỉ dành cho tài khoản Pro.\n\nBạn có muốn nâng cấp ngay (10k trọn đời) không?",
+                    "Tính năng Pro", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    _viewModel.OpenUpgradeWindow();
+                }
+                return;
+            }
+
             if (_viewModel.Nodes.Count == 0)
             {
                 MessageBox.Show("Chưa có nội dung để xuất!", "Thông báo");
@@ -548,6 +606,17 @@ namespace MindmapApp.Views
 
         private void BtnExportPdf_Click(object sender, RoutedEventArgs e)
         {
+            // ✨ CHECK QUYỀN PRO
+            if (!_viewModel.IsProAccount)
+            {
+                if (MessageBox.Show("Tính năng Xuất PDF chỉ dành cho tài khoản Pro.\n\nBạn có muốn nâng cấp ngay (10k trọn đời) không?",
+                    "Tính năng Pro", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    _viewModel.OpenUpgradeWindow();
+                }
+                return;
+            }
+
             if (!ShowPdfExportOptionsWindow(out var options))
                 return;
 
@@ -588,17 +657,16 @@ namespace MindmapApp.Views
 
         private void BtnRecent_Click(object sender, RoutedEventArgs e)
         {
-             // Save current work logic if needed? Auto-save is on.
-             var recentMapsWindow = new RecentMapsWindow(_viewModel.CurrentUser);
-             recentMapsWindow.Show();
-             this.Close();
+            var recentMapsWindow = new RecentMapsWindow(_viewModel.CurrentUser);
+            recentMapsWindow.Show();
+            this.Close();
         }
 
         private void OnFormattingPanelPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (_viewModel != null)
             {
-               _viewModel.RecordHistory();
+                _viewModel.RecordHistory();
             }
         }
 
@@ -610,13 +678,9 @@ namespace MindmapApp.Views
             var btn = sender as Button;
             if (btn != null)
             {
-                // 1. Ngăn không cho Thumb (lớp dưới) bắt được sự kiện này
                 e.Handled = true;
-
-                // 2. Thực thi lệnh mở rộng ngay lập tức
                 if (btn.DataContext is NodeViewModel node)
                 {
-                    // Gọi trực tiếp Command của Node
                     if (node.ToggleExpandCommand.CanExecute(null))
                     {
                         node.ToggleExpandCommand.Execute(null);

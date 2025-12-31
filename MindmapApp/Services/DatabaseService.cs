@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.Data.Sqlite; // ✨ THAY ĐỔI: Sử dụng thư viện SQLite
+using Microsoft.Data.Sqlite;
 using System.Windows;
 
 namespace MindmapApp.Services;
@@ -22,7 +22,6 @@ public class DatabaseService
         _connectionString = connectionString;
 
         // Trích xuất đường dẫn file từ Connection String
-        // Ví dụ: "Data Source=C:\\...\\mindmap.db"
         _databasePath = connectionString.Replace("Data Source=", "", StringComparison.OrdinalIgnoreCase).Trim();
 
         // Khởi tạo: kiểm tra file và tạo database/schema nếu cần
@@ -43,7 +42,7 @@ public class DatabaseService
                 connection.Open();
 
                 // 2. Định nghĩa SQL Schema (CREATE TABLE) cho SQLite
-                // Kiểu dữ liệu trong SQLite: INTEGER (cho PK tự động tăng), TEXT (cho string/Guid/DateTime), REAL (cho float/double)
+                // ✨ CẬP NHẬT: Thêm cột IsPro (INTEGER) mặc định là 0 (False)
                 var createUsersTable = @"
                     CREATE TABLE Users (
                         Id TEXT PRIMARY KEY NOT NULL,
@@ -52,7 +51,8 @@ public class DatabaseService
                         PasswordSalt TEXT NOT NULL,
                         DisplayName TEXT,
                         CreatedAt TEXT NOT NULL,
-                        LastLoginAt TEXT
+                        LastLoginAt TEXT,
+                        IsPro INTEGER DEFAULT 0
                     );";
 
                 var createMindmapsTable = @"
@@ -88,11 +88,32 @@ public class DatabaseService
                 Application.Current.Shutdown();
             }
         }
-
-        // Migration logic (từ Password cũ sang Hash/Salt) không cần thiết
-        // vì hàm Register/Authenticate giờ đây sẽ luôn sử dụng Hash/Salt
+        else
+        {
+            // ✨ 4. MIGRATION: Nếu DB đã tồn tại, tự động thêm cột IsPro nếu thiếu
+            // Giúp bạn không cần xoá file .db cũ
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                connection.Open();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "ALTER TABLE Users ADD COLUMN IsPro INTEGER DEFAULT 0;";
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                }
+                catch
+                {
+                    // Nếu cột đã tồn tại (lỗi duplicate column), ta bỏ qua
+                }
+            }
+            catch (Exception)
+            {
+                // Bỏ qua các lỗi kết nối khác để không làm phiền user
+            }
+        }
     }
 
-    // ✨ THAY ĐỔI: Trả về đối tượng SqliteConnection
+    // Trả về đối tượng SqliteConnection
     public SqliteConnection GetConnection() => new(_connectionString);
 }

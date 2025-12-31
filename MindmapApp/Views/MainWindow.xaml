@@ -245,6 +245,17 @@
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding ToggleThemeCommand}" Content="🌗 Theme" MinWidth="80" Margin="0,0,5,0"/>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding OpenProfileCommand}" Content="👤 Tài khoản" MinWidth="90" Background="#334455" BorderBrush="#556677" Foreground="White" Margin="0,0,5,0"/>
                                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding ClearAllCommand}" Content="🗑️ Xóa tất cả" MinWidth="100" Background="#FFEF9A9A" Foreground="#B71C1C" BorderBrush="#FFEF5350" Margin="0,0,5,0"/>
+
+                                <Button Style="{StaticResource ToolbarButton}" 
+                                        Command="{Binding OpenUpgradeWindowCommand}" 
+                                        Content="👑 Up Pro" MinWidth="80" 
+                                        Background="#FFD700" Foreground="#3E2723" FontWeight="Bold" BorderBrush="#FFC107"
+                                        Margin="0,0,5,0" ToolTip="Nâng cấp tài khoản Pro">
+                                    <Button.Visibility>
+                                        <Binding Path="IsProAccount" Converter="{StaticResource BooleanToVisibilityConverter}" ConverterParameter="Inverse"/>
+                                    </Button.Visibility>
+                                </Button>
+
                                 <Button Style="{StaticResource ToolbarButton}" Click="BtnRecent_Click" Content="Recent" MinWidth="80" Background="#FFA6D6FB" Foreground="#0D47A1" BorderBrush="#FF42A5F5" ToolTip="Quay lại danh sách"/>
                             </StackPanel>
                         </ScrollViewer>
@@ -393,8 +404,8 @@
                                             <Grid>
                                                 <Grid.InputBindings>
                                                     <MouseBinding MouseAction="LeftClick" 
-                                                                  Command="{Binding DataContext.SelectConnectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                  CommandParameter="{Binding}"/>
+                                                                Command="{Binding DataContext.SelectConnectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}"/>
                                                 </Grid.InputBindings>
 
                                                 <Path x:Name="HitPath" StrokeThickness="20" Stroke="Transparent" Cursor="Hand">
@@ -670,7 +681,10 @@
                         </ScrollViewer>
                     </Border>
 
-                    <Border Grid.Column="2" Width="320" Background="{DynamicResource SurfaceBrush}" CornerRadius="26,0,0,26" Padding="20" PreviewMouseLeftButtonDown="OnFormattingPanelPreviewMouseLeftButtonDown"
+                    <GridSplitter Grid.Column="2" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" ShowsPreview="True"
+                                  Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"/>
+
+                    <Border Grid.Column="3" Width="320" Background="{DynamicResource SurfaceBrush}" CornerRadius="26,0,0,26" Padding="20" PreviewMouseLeftButtonDown="OnFormattingPanelPreviewMouseLeftButtonDown"
                             Visibility="{Binding IsPresentationMode, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
@@ -711,15 +725,7 @@
                                             <TextBlock Text="Độ dày dây" Foreground="{DynamicResource TextBrush}" Margin="0,15,0,4"/>
                                             <Slider Minimum="1" Maximum="10" Value="{Binding SelectedConnection.Thickness, UpdateSourceTrigger=PropertyChanged}" AutoToolTipPlacement="TopLeft" Margin="0,0,0,10"/>
 
-                                            <TextBlock Text="Hình dáng dây" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding SelectedConnection.ConnectionStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                      Height="26" Style="{StaticResource ThemedComboBox}" 
-                      SelectedValuePath="Tag" Margin="0,0,0,8">
-                                                <ComboBoxItem Content="Dây cong mềm (Bezier)" Tag="Bezier" />
-                                                <ComboBoxItem Content="Dây thẳng (Straight)" Tag="Straight" />
-                                            </ComboBox>
-
-                                            <TextBlock Text="Kiểu nét" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Kiểu đường" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding SelectedConnection.LineStyle, Mode=TwoWay}" Height="26" Style="{StaticResource ThemedComboBox}" SelectedValuePath="Tag" Margin="0,0,0,8">
                                                 <ComboBoxItem Content="Nét liền" Tag="Solid" />
                                                 <ComboBoxItem Content="Nét đứt" Tag="Dashed" />
@@ -728,7 +734,7 @@
                                             <TextBlock Text="Mũi tên" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding SelectedConnection.ArrowStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="26" Style="{StaticResource ThemedComboBox}" SelectedValuePath="Tag" Margin="0,0,0,12">
                                                 <ComboBoxItem Content="Không mũi tên" Tag="None" />
-                                                <ComboBoxItem Content="Có mũi tên" Tag="Arrow" />
+                                                <ComboBoxItem Content="Mũi tên" Tag="Arrow" />
                                             </ComboBox>
 
                                             <Button Content="Xóa liên kết này" Command="{Binding DeleteConnectionCommand}" Background="#333" Foreground="#FF5555" BorderThickness="0" Padding="10" Cursor="Hand">
