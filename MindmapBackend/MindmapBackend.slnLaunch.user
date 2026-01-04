@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "MindmapBackend.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "..\\Mindmap_Project\\MindmapApp\\MindMapApp.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

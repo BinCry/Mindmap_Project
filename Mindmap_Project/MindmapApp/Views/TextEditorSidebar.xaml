@@ -1,0 +1,188 @@
+﻿<UserControl x:Class="MindmapApp.Views.TextEditorSidebar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:MindmapApp.ViewModels"
+             xmlns:conv="clr-namespace:MindmapApp.Converters"
+             xmlns:helpers="clr-namespace:MindmapApp.Helpers"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="350">
+
+    <UserControl.Resources>
+        <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:ColorToBrushConverter x:Key="ColorToBrushConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+        <Style x:Key="FormatButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" BorderThickness="1" BorderBrush="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Soạn thảo &amp; Cấu hình" FontSize="18" FontWeight="SemiBold" 
+                       Foreground="{DynamicResource TextBrush}" Margin="20,20,0,15" />
+
+            <StackPanel Grid.Row="1" Margin="15,0,15,10" Visibility="{Binding SelectedNode, Converter={StaticResource NullToVisibilityConverter}}">
+
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox x:Name="FontFamilyComboBox" Grid.Column="0" 
+                              ItemsSource="{Binding FontOptions}" 
+                              SelectedItem="{Binding SelectedNode.FontFamily}" 
+                              Style="{StaticResource ThemedComboBox}"
+                              IsEditable="True" IsTextSearchEnabled="True"
+                              Height="36" Padding="10,0" VerticalContentAlignment="Center"
+                              SelectionChanged="FontFamilyComboBox_SelectionChanged">
+                    </ComboBox>
+
+                    <ComboBox x:Name="FontSizeComboBox" Grid.Column="2" 
+                              ItemsSource="{Binding FontSizeOptions}" 
+                              SelectedItem="{Binding SelectedNode.FontSize}" 
+                              Style="{StaticResource ThemedComboBox}"
+                              IsEditable="True" IsTextSearchEnabled="True"
+                              Height="36" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                              SelectionChanged="FontSizeComboBox_SelectionChanged"/>
+                </Grid>
+            </StackPanel>
+
+            <Border Grid.Row="2" Margin="15,0,15,15" 
+                    Background="{DynamicResource BackgroundBrush}" 
+                    CornerRadius="8" Padding="8" 
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                    Visibility="{Binding SelectedNode, Converter={StaticResource NullToVisibilityConverter}}">
+                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <ToggleButton x:Name="BtnBold" Click="BtnBold_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="In đậm (Ctrl+B)">
+                        <TextBlock Text="B" FontWeight="Bold" FontSize="14"/>
+                    </ToggleButton>
+
+                    <ToggleButton x:Name="BtnItalic" Click="BtnItalic_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="In nghiêng (Ctrl+I)">
+                        <TextBlock Text="I" FontStyle="Italic" FontSize="14" FontFamily="Times New Roman"/>
+                    </ToggleButton>
+
+                    <ToggleButton x:Name="BtnUnderline" Click="BtnUnderline_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="Gạch chân (Ctrl+U)">
+                        <TextBlock Text="U" TextDecorations="Underline" FontSize="14"/>
+                    </ToggleButton>
+
+                    <Rectangle Width="1" Height="24" Fill="{DynamicResource BorderBrush}" Margin="5,0"/>
+
+                    <ToggleButton x:Name="BtnAlignLeft" Click="BtnAlignLeft_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="Căn trái (Ctrl+L)">
+                        <Path Data="M0,4 L14,4 M0,8 L10,8 M0,12 L14,12 M0,16 L10,16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5" VerticalAlignment="Center" HorizontalAlignment="Center" Width="14" Height="14" Stretch="Uniform"/>
+                    </ToggleButton>
+
+                    <ToggleButton x:Name="BtnAlignCenter" Click="BtnAlignCenter_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="Căn giữa (Ctrl+E)">
+                        <Path Data="M0,4 L14,4 M2,8 L12,8 M0,12 L14,12 M2,16 L12,16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5" VerticalAlignment="Center" HorizontalAlignment="Center" Width="14" Height="14" Stretch="Uniform"/>
+                    </ToggleButton>
+
+                    <ToggleButton x:Name="BtnAlignRight" Click="BtnAlignRight_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="Căn phải (Ctrl+R)">
+                        <Path Data="M0,4 L14,4 M4,8 L14,8 M0,12 L14,12 M4,16 L14,16" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5" VerticalAlignment="Center" HorizontalAlignment="Center" Width="14" Height="14" Stretch="Uniform"/>
+                    </ToggleButton>
+
+                    <Rectangle Width="1" Height="24" Fill="{DynamicResource BorderBrush}" Margin="5,0"/>
+
+                    <ToggleButton x:Name="BtnBullets" Click="BtnBullets_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="Danh sách chấm tròn">
+                        <TextBlock Text="•" FontSize="18" FontWeight="Bold"/>
+                    </ToggleButton>
+
+                    <ToggleButton x:Name="BtnNumbering" Click="BtnNumbering_Click" Style="{StaticResource FormatButtonStyle}" ToolTip="Danh sách số">
+                        <TextBlock Text="1." FontSize="14" FontWeight="Bold"/>
+                    </ToggleButton>
+
+                    <Rectangle Width="1" Height="24" Fill="{DynamicResource BorderBrush}" Margin="5,0"/>
+
+                    <xctk:ColorPicker SelectedColor="{Binding SelectedNode.TextColor}" 
+                                      Width="40" Height="32" ShowDropDownButton="False" 
+                                      Background="Transparent" BorderThickness="0"
+                                      ToolTip="Màu chữ"/>
+
+                    <Button Width="48" Height="32" Margin="2" Background="Transparent" BorderThickness="0"
+                            ToolTip="Thêm ảnh" Click="InsertImageButton_Click" Cursor="Hand">
+                        <TextBlock Text="Ảnh" FontSize="12" Foreground="{DynamicResource TextBrush}"/>
+                    </Button>
+                </WrapPanel>
+            </Border>
+
+            <Border Grid.Row="3" Margin="15,0,15,20" 
+                    Background="{Binding SelectedNode.BackgroundColor, Converter={StaticResource ColorToBrushConverter}, FallbackValue=White}" 
+                    CornerRadius="8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <Grid>
+                    <TextBlock Text="Chọn Node để chỉnh sửa" 
+                               Foreground="#888" VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Visibility="{Binding SelectedNode, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}"/>
+
+                    <RichTextBox x:Name="EditorBox" 
+                                 Visibility="{Binding SelectedNode, Converter={StaticResource NullToVisibilityConverter}}"
+                                 helpers:RichTextBoxHelper.DocumentXaml="{Binding SelectedNode.ContentXaml, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                 Foreground="{Binding SelectedNode.TextColor, Converter={StaticResource ColorToBrushConverter}}"
+                                 CaretBrush="{Binding SelectedNode.TextColor, Converter={StaticResource ColorToBrushConverter}}"
+                                 FontFamily="{Binding SelectedNode.FontFamily, FallbackValue=Arial}"
+                                 FontSize="{Binding SelectedNode.FontSize, FallbackValue=14}"
+                                 Padding="15" BorderThickness="0" Background="Transparent"
+                                 AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 SelectionChanged="EditorBox_SelectionChanged"
+                                 GotKeyboardFocus="EditorBox_GotKeyboardFocus"
+                                 LostKeyboardFocus="EditorBox_LostKeyboardFocus">
+                        <RichTextBox.Style>
+                            <Style TargetType="RichTextBox">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedNode.IsLockedByRemote}" Value="True">
+                                        <Setter Property="IsReadOnly" Value="True"/>
+                                        <Setter Property="Opacity" Value="0.6"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </RichTextBox.Style>
+                    </RichTextBox>
+
+                    <Border Background="#AA000000"
+                            CornerRadius="8"
+                            Visibility="{Binding SelectedNode.IsLockedByRemote, Converter={StaticResource BoolToVisibilityConverter}}"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="Node đang được chỉnh sửa" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding SelectedNode.LockedByEmail}" Foreground="White" Opacity="0.9" FontSize="12" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

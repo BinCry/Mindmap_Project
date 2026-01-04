@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../Mindmap_Project/MindmapApp/MindMapApp.csproj" />
+  <Project Path="MindmapBackend.csproj" />
+</Solution>
