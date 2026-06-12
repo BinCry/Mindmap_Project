@@ -1,21 +1,20 @@
-# Ứng dụng tạo Mind Map 
+# Mindmap Backend
 
-Đồ án môn IT.008 của sinh viên UIT
+[![.NET 8](https://img.shields.io/badge/.NET_8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/csharp/)
+[![SignalR](https://img.shields.io/badge/SignalR-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction)
+[![Entity Framework Core](https://img.shields.io/badge/EF_Core-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/ef/core/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Visual Studio](https://img.shields.io/badge/Visual_Studio-5C2D91?style=for-the-badge&logo=visual-studio&logoColor=white)](https://visualstudio.microsoft.com/)
 
-## 🧠 Tính năng chính
-- ✅ Tạo mindmap với đầy đủ tính năng cơ bản
-- ✅ Có thể làm việc nhóm 
-- ✅ Nâng cao tiếp nếu có thể
+Hệ thống Backend Web API xử lý và đồng bộ hóa dữ liệu bản đồ tư duy (Mindmap) theo thời gian thực (Real-time).
 
-## 🛠️ Công nghệ sử dụng
-- Ngôn ngữ: C#
-- IDE: Visual Studio 2022
-- Hệ điều hành: Windows
+---
 
-## ⚙️ Cách cài đặt và chạy
-Clone dự án về máy:
-   ```bash
-   git clone https://github.com/BinCry/C-Sharp-Project
-   check out <tên nhánh> (vào nhánh để làm việc)
+## ✨ Tính năng cốt lõi
 
+- **Real-time Synchronization:** Sử dụng SignalR Hub để truyền tải các thao tác chỉnh sửa node, kết nối trên mindmap tức thời đến mọi phiên làm việc của user.
+- **Quản lý thực thể:** Cấu trúc cơ sở dữ liệu chặt chẽ quản lý thông tin tài khoản người dùng (`User`) và dữ liệu các sơ đồ (`Mindmap`).
+- **Xác thực và phân quyền:** API endpoints xử lý luồng Authentication (`AuthController`) bảo mật.
+- **ORM Hiện đại:** Thao tác dữ liệu thông qua Entity Framework Core nhanh chóng, an toàn, hỗ trợ quản lý qua DbContext[cite: 6].
 
